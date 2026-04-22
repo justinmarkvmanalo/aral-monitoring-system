@@ -8,6 +8,9 @@ const nextConfig = {
   async redirects() {
     return [
       { source: '/index.php', destination: '/', permanent: true },
+      { source: '/register', destination: '/teacher/register', permanent: true },
+      { source: '/teacher', destination: '/teacher/login', permanent: true },
+      { source: '/admin', destination: '/admin/login', permanent: true },
       { source: '/login.php', destination: '/teacher/login', permanent: true },
       { source: '/register_teacher.php', destination: '/teacher/register', permanent: true },
       { source: '/dashboard.php', destination: '/teacher/dashboard', permanent: true },
