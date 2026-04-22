@@ -1,7 +1,7 @@
-import { destroySession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { destroySession } from '@/lib/auth';
 
-export default async function AdminLogoutPage() {
+export default async function AdminLogout() {
   await destroySession();
-  redirect('/');
+  redirect('/admin/login');
 }
