@@ -15,26 +15,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$email || !$password) {
         $error = "Please enter your email and password.";
     } else {
-        $stmt = $conn->prepare("SELECT id, full_name, initials, password_hash FROM teachers WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
-        $stmt->bind_result($id, $full_name, $initials, $hash);
-        $stmt->fetch();
+        $stmt = $conn->prepare("SELECT id, full_name, initials, password_hash FROM teachers WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
+        $teacher = $stmt->fetch();
 
-        if ($stmt->num_rows === 0 || !password_verify($password, $hash)) {
+        if (!$teacher || !password_verify($password, $teacher['password_hash'])) {
             $error = "Invalid email or password.";
         } else {
-            $_SESSION['teacher_id']       = $id;
-            $_SESSION['teacher_name']     = $full_name;
-            $_SESSION['teacher_initials'] = $initials;
-            $stmt->close();
-            $conn->close();
+            $_SESSION['teacher_id']       = (int) $teacher['id'];
+            $_SESSION['teacher_name']     = $teacher['full_name'];
+            $_SESSION['teacher_initials'] = $teacher['initials'];
             header("Location: dashboard.php");
             exit;
         }
-        $stmt->close();
-        $conn->close();
     }
 }
 ?>

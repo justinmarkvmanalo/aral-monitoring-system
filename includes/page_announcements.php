@@ -9,14 +9,17 @@
 
   <?php
   // Fetch announcements — open a fresh connection since $conn may be closed
-  $ann_conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
   $ann_list = [];
-  if (!$ann_conn->connect_error) {
+  try {
+      $ann_conn = db_connect();
       $ann_q = $ann_conn->query(
           "SELECT title, message, created_at FROM announcements ORDER BY created_at DESC LIMIT 30"
       );
-      if ($ann_q) while ($row = $ann_q->fetch_assoc()) $ann_list[] = $row;
-      $ann_conn->close();
+      if ($ann_q) {
+          $ann_list = $ann_q->fetchAll();
+      }
+  } catch (Throwable $e) {
+      $ann_list = [];
   }
   ?>
 

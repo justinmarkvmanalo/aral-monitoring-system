@@ -14,12 +14,12 @@ $error   = "";
 $success = "";
 
 // ── Check if teacher already has a section ────────────────────
-$chk = $conn->prepare("SELECT id, section_name, grade_level FROM sections WHERE teacher_id = ? LIMIT 1");
-$chk->bind_param("i", $teacher_id);
-$chk->execute();
-$chk->bind_result($existing_id, $existing_section, $existing_grade);
-$chk->fetch();
-$chk->close();
+$chk = $conn->prepare("SELECT id, section_name, grade_level FROM sections WHERE teacher_id = :teacher_id LIMIT 1");
+$chk->execute(['teacher_id' => $teacher_id]);
+$existing = $chk->fetch();
+$existing_id = $existing ? (int) $existing['id'] : null;
+$existing_section = $existing['section_name'] ?? null;
+$existing_grade = isset($existing['grade_level']) ? (int) $existing['grade_level'] : null;
 
 // ── Handle form submit ────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,52 +35,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Grade level must be between 1 and 6.";
     } else {
         // ── Get or create school year ─────────────────────────
-        $sy_q = $conn->prepare("SELECT id FROM school_years WHERE label = ?");
-        $sy_q->bind_param("s", $sy_label);
-        $sy_q->execute();
-        $sy_q->bind_result($sy_id);
-        $sy_q->fetch();
-        $sy_q->close();
+        $sy_q = $conn->prepare("SELECT id FROM school_years WHERE label = :label LIMIT 1");
+        $sy_q->execute(['label' => $sy_label]);
+        $sy_id = $sy_q->fetchColumn();
 
         if (!$sy_id) {
-            $sy_ins = $conn->prepare("INSERT INTO school_years (label, start_date, end_date) VALUES (?, ?, ?)");
-            $sy_ins->bind_param("sss", $sy_label, $sy_start, $sy_end);
-            $sy_ins->execute();
-            $sy_id = $conn->insert_id;
-            $sy_ins->close();
+            $sy_ins = $conn->prepare("INSERT INTO school_years (label, start_date, end_date) VALUES (:label, :start_date, :end_date) RETURNING id");
+            $sy_ins->execute([
+                'label' => $sy_label,
+                'start_date' => $sy_start,
+                'end_date' => $sy_end,
+            ]);
+            $sy_id = (int) $sy_ins->fetchColumn();
         }
 
         if ($existing_id) {
             // ── Update existing section ───────────────────────
-            $upd = $conn->prepare("UPDATE sections SET school_year_id=?, grade_level=?, section_name=? WHERE id=?");
-            $upd->bind_param("iisi", $sy_id, $grade_level, $section_name, $existing_id);
-            if ($upd->execute()) {
+            $upd = $conn->prepare("UPDATE sections SET school_year_id = :school_year_id, grade_level = :grade_level, section_name = :section_name WHERE id = :id");
+            if ($upd->execute([
+                'school_year_id' => $sy_id,
+                'grade_level' => $grade_level,
+                'section_name' => $section_name,
+                'id' => $existing_id,
+            ])) {
                 $success = "Section updated successfully!";
                 $existing_section = $section_name;
                 $existing_grade   = $grade_level;
             } else {
-                $error = "Update failed: " . $upd->error;
+                $error = "Update failed.";
             }
-            $upd->close();
         } else {
             // ── Insert new section ────────────────────────────
             $ins = $conn->prepare(
                 "INSERT INTO sections (school_year_id, grade_level, section_name, teacher_id)
-                 VALUES (?, ?, ?, ?)"
+                 VALUES (:school_year_id, :grade_level, :section_name, :teacher_id)"
             );
-            $ins->bind_param("iisi", $sy_id, $grade_level, $section_name, $teacher_id);
-            if ($ins->execute()) {
+            if ($ins->execute([
+                'school_year_id' => $sy_id,
+                'grade_level' => $grade_level,
+                'section_name' => $section_name,
+                'teacher_id' => $teacher_id,
+            ])) {
                 $success = "Section created! Redirecting to dashboard...";
                 header("refresh:2;url=dashboard.php");
             } else {
-                $error = "Failed to create section: " . $ins->error;
+                $error = "Failed to create section.";
             }
-            $ins->close();
         }
     }
 }
-
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

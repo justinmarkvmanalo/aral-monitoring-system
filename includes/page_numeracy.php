@@ -267,8 +267,10 @@ function loadDrillFromDB(){
         currentDrill.level     = dr.level;
         currentDrill.total     = dr.total_items;
         currentDrill.label     = dr.label;
-        currentDrill.saved     = dr.saved == 1;
-        try { currentDrill.questions = JSON.parse(dr.questions); } catch(e){ currentDrill.questions = []; }
+        currentDrill.saved     = (dr.saved === true || dr.saved === 1 || dr.saved === '1' || dr.saved === 't');
+        try {
+          currentDrill.questions = (typeof dr.questions === 'string') ? JSON.parse(dr.questions) : (dr.questions || []);
+        } catch(e){ currentDrill.questions = []; }
         if(currentDrill.questions.length) restoreDrillUI();
       }
     }).catch(function(){});

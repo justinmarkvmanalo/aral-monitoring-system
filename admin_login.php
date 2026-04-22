@@ -15,26 +15,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$email || !$password) {
         $error = "Please enter your email and password.";
     } else {
-        $stmt = $conn->prepare("SELECT id, name, initials, password FROM admins WHERE email = ? LIMIT 1");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
-        $stmt->bind_result($id, $name, $initials, $hash);
-        $stmt->fetch();
+        $stmt = $conn->prepare("SELECT id, name, initials, password FROM admins WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
+        $admin = $stmt->fetch();
 
-        if ($stmt->num_rows === 0 || !password_verify($password, $hash)) {
+        if (!$admin || !password_verify($password, $admin['password'])) {
             $error = "Invalid email or password.";
         } else {
-            $_SESSION['admin_id']       = $id;
-            $_SESSION['admin_name']     = $name;
-            $_SESSION['admin_initials'] = $initials ?? strtoupper(substr($name, 0, 2));
-            $stmt->close();
-            $conn->close();
+            $_SESSION['admin_id']       = (int) $admin['id'];
+            $_SESSION['admin_name']     = $admin['name'];
+            $_SESSION['admin_initials'] = $admin['initials'] ?? strtoupper(substr($admin['name'], 0, 2));
             header("Location: admin_dashboard.php");
             exit;
         }
-        $stmt->close();
-        $conn->close();
     }
 }
 ?>

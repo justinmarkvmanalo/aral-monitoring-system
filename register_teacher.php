@@ -1,5 +1,5 @@
 <?php
-include 'conn.php'; // provides $conn, $DB_HOST, $DB_USER, $DB_PASS, $DB_NAME
+include 'conn.php';
 
 $success = "";
 $error   = "";
@@ -23,30 +23,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Passwords do not match.";
     } else {
         // $conn is already open from conn.php — use it directly
-        $stmt = $conn->prepare("SELECT id FROM teachers WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
+        $stmt = $conn->prepare("SELECT id FROM teachers WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
 
-        if ($stmt->num_rows > 0) {
+        if ($stmt->fetch()) {
             $error = "An account with that email already exists.";
         } else {
             $hash = password_hash($password, PASSWORD_BCRYPT);
             $ins  = $conn->prepare(
                 "INSERT INTO teachers (full_name, initials, email, password_hash)
-                 VALUES (?, ?, ?, ?)"
+                 VALUES (:full_name, :initials, :email, :password_hash)"
             );
-            $ins->bind_param("ssss", $full_name, $initials, $email, $hash);
-
-            if ($ins->execute()) {
+            if ($ins->execute([
+                'full_name' => $full_name,
+                'initials' => $initials,
+                'email' => $email,
+                'password_hash' => $hash,
+            ])) {
                 $success = "Account created successfully! You can now <a href='login.php'>log in</a>.";
             } else {
-                $error = "Insert failed: " . $ins->error;
+                $error = "Insert failed.";
             }
-            $ins->close();
         }
-        $stmt->close();
-        $conn->close();
     }
 }
 ?>
