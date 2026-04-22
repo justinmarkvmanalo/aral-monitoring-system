@@ -219,6 +219,6 @@ export default function TeacherDashboardClient({
           {renderContent()}
         </main>
       </div>
-    </div>
+    </>
   );
 }

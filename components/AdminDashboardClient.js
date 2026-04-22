@@ -261,6 +261,6 @@ export default function AdminDashboardClient({
           {renderContent()}
         </main>
       </div>
-    </div>
+    </>
   );
 }
