@@ -1,5 +1,4 @@
-import AuthForm from '@/components/AuthForm';
-import { adminLoginAction } from '@/app/actions';
+import { AdminLoginForm } from '@/components/AuthForms';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -9,25 +8,5 @@ export default async function AdminLoginPage() {
     redirect('/admin/dashboard');
   }
 
-  return (
-    <AuthForm
-      action={adminLoginAction}
-      title="Admin Sign In"
-      subtitle="Manage teachers, sections, and announcements."
-      badge="Admin Portal"
-      badgeClassName="role-badge admin"
-      fields={
-        <>
-          <div className="field">
-            <label>Email</label>
-            <input type="email" name="email" placeholder="admin@school.edu.ph" />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input type="password" name="password" />
-          </div>
-        </>
-      }
-    />
-  );
+  return <AdminLoginForm />;
 }
