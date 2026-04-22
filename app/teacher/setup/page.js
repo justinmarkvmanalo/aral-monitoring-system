@@ -1,5 +1,6 @@
 import { saveSectionAction } from '@/app/actions';
 import SectionForm from '@/components/SectionForm';
+import { TopNav, Sidebar } from '@/components/Navigation';
 import { requireRole } from '@/lib/auth';
 import { getTeacherSection } from '@/lib/data';
 
@@ -9,32 +10,30 @@ export default async function TeacherSetupPage() {
   const action = saveSectionAction.bind(null, session);
 
   return (
-    <main className="shell">
-      <div className="container">
-        <div className="nav-strip">
-          <div>
-            <div className="brand">
-              <div className="brand-mark">A</div>
-              <div>ARAL Monitor</div>
-            </div>
+    <>
+      <TopNav user={session} role="teacher" />
+      <div className="main-wrap">
+        <Sidebar role="teacher" activeItem="setup" />
+        <main className="content">
+          <div className="page-header">
             <h1>{section ? 'Update Class Section' : 'Set Up Your Class'}</h1>
-            <p className="lead">This is the first teacher step after account creation.</p>
+            <p>This is the first teacher step after account creation.</p>
           </div>
-        </div>
 
-        <section className="panel">
-          <SectionForm
-            action={action}
-            initialValues={{
-              label: section?.school_year_label || '2026-2027',
-              startDate: '2025-06-02',
-              endDate: '2026-04-03',
-              gradeLevel: section?.grade_level || '',
-              sectionName: section?.section_name || ''
-            }}
-          />
-        </section>
+          <section className="panel">
+            <SectionForm
+              action={action}
+              initialValues={{
+                label: section?.school_year_label || '2026-2027',
+                startDate: '2025-06-02',
+                endDate: '2026-04-03',
+                gradeLevel: section?.grade_level || '',
+                sectionName: section?.section_name || ''
+              }}
+            />
+          </section>
+        </main>
       </div>
-    </main>
+    </>
   );
 }
