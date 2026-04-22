@@ -203,7 +203,7 @@ export default function TeacherDashboardClient({
   };
 
   return (
-    <div id="app">
+    <>
       <TopNav user={session} role="teacher" />
       <div className="main-wrap">
         <Sidebar 

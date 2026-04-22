@@ -244,7 +244,7 @@ export default function AdminDashboardClient({
   };
 
   return (
-    <div id="app">
+    <>
       <TopNav user={session} role="admin" />
       <div className="main-wrap">
         <Sidebar 
