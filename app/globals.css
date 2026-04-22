@@ -124,6 +124,11 @@ textarea {
   flex-wrap: wrap;
 }
 
+.inline-form {
+  display: grid;
+  gap: 8px;
+}
+
 .button,
 .button-secondary,
 .button-danger {
@@ -167,6 +172,14 @@ textarea {
 .field textarea {
   min-height: 120px;
   resize: vertical;
+}
+
+.score-input {
+  width: 84px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
 }
 
 .form-grid {
@@ -294,6 +307,53 @@ textarea {
 .banner.success {
   background: #e7f8f0;
   color: var(--brand-dark);
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+.success-text {
+  color: var(--brand-dark);
+}
+
+.numeracy-panel .panel {
+  box-shadow: none;
+}
+
+.numeracy-grid {
+  align-items: start;
+}
+
+.numeracy-preview {
+  margin-top: 4px;
+}
+
+.numeracy-questions {
+  display: grid;
+  gap: 12px;
+}
+
+.numeracy-question {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+  align-items: flex-start;
+}
+
+.reading-grid {
+  align-items: start;
+}
+
+.reading-passage {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+  line-height: 1.8;
 }
 
 @media (max-width: 960px) {

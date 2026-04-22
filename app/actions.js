@@ -10,7 +10,14 @@ import {
   addTeacherByAdmin,
   createAnnouncement,
   createOrUpdateSection,
+  deleteAnnouncementByAdmin,
+  deleteTeacherByAdmin,
   registerTeacher,
+  saveReadingAssessment,
+  saveNumeracyDrill,
+  saveNumeracyScores,
+  saveScienceQuiz,
+  saveIntervention,
   saveAttendance
 } from '@/lib/data';
 import { query } from '@/lib/db';
@@ -190,4 +197,182 @@ export async function addAnnouncementAction(session, _, formData) {
   revalidatePath('/admin/dashboard');
   revalidatePath('/teacher/dashboard');
   return { success: 'Announcement posted.' };
+}
+
+export async function deleteTeacherAction(_, formData) {
+  const teacherId = Number(formData.get('teacherId') || 0);
+
+  if (!teacherId) {
+    return { error: 'Missing teacher.' };
+  }
+
+  try {
+    await deleteTeacherByAdmin(teacherId);
+  } catch (error) {
+    return {
+      error:
+        error?.code === '23503'
+          ? 'Teacher cannot be deleted while related records still exist.'
+          : 'Failed to delete teacher.'
+    };
+  }
+
+  revalidatePath('/admin/dashboard');
+  return { success: 'Teacher deleted successfully.' };
+}
+
+export async function deleteAnnouncementAction(_, formData) {
+  const announcementId = Number(formData.get('announcementId') || 0);
+
+  if (!announcementId) {
+    return { error: 'Missing announcement.' };
+  }
+
+  await deleteAnnouncementByAdmin(announcementId);
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/teacher/dashboard');
+  return { success: 'Announcement deleted.' };
+}
+
+export async function saveNumeracyDrillAction(session, formData) {
+  const sectionId = Number(formData.get('sectionId') || 0);
+  const skill = asText(formData, 'skill');
+  const skillName = asText(formData, 'skillName');
+  const level = Number(formData.get('level') || 0);
+  const totalItems = Number(formData.get('totalItems') || 0);
+  const label = asText(formData, 'label');
+  const questionsRaw = String(formData.get('questions') || '[]');
+
+  if (!sectionId || !skill || !skillName || !level || !totalItems) {
+    throw new Error('Missing numeracy drill details.');
+  }
+
+  const questions = JSON.parse(questionsRaw);
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error('Numeracy drill questions are required.');
+  }
+
+  const drill = await saveNumeracyDrill({
+    teacherId: session.userId,
+    sectionId,
+    skill,
+    skillName,
+    level,
+    totalItems,
+    label,
+    questions
+  });
+
+  revalidatePath('/teacher/dashboard');
+  return { success: true, drill };
+}
+
+export async function saveNumeracyScoresAction(session, formData) {
+  const drillId = Number(formData.get('drillId') || 0);
+  const scoresRaw = String(formData.get('scores') || '[]');
+
+  if (!drillId) {
+    throw new Error('Missing numeracy drill.');
+  }
+
+  const scores = JSON.parse(scoresRaw)
+    .map((score) => ({
+      studentId: Number(score.studentId || 0),
+      correct: Number(score.correct || 0),
+      percent: Number(score.percent || 0),
+      mastery: String(score.mastery || '')
+    }))
+    .filter((score) => score.studentId > 0 && score.mastery);
+
+  if (scores.length === 0) {
+    throw new Error('No numeracy scores to save.');
+  }
+
+  const result = await saveNumeracyScores({
+    teacherId: session.userId,
+    drillId,
+    scores
+  });
+
+  revalidatePath('/teacher/dashboard');
+  return { success: true, ...result };
+}
+
+export async function saveReadingAssessmentAction(session, formData) {
+  const studentId = Number(formData.get('studentId') || 0);
+  const assessedDate = asText(formData, 'assessedDate');
+  const level = asText(formData, 'level');
+  const comprehensionPct = Number(formData.get('comprehensionPct') || 0);
+  const pronunciation = asText(formData, 'pronunciation');
+  const notes = asText(formData, 'notes');
+
+  if (!studentId || !assessedDate || !level || !pronunciation) {
+    return { error: 'Missing reading assessment details.' };
+  }
+
+  await saveReadingAssessment({
+    studentId,
+    assessedDate,
+    level,
+    comprehensionPct,
+    pronunciation,
+    notes,
+    teacherId: session.userId
+  });
+
+  revalidatePath('/teacher/dashboard');
+  return { success: 'Reading assessment saved.' };
+}
+
+export async function saveScienceQuizAction(session, formData) {
+  const sectionId = Number(formData.get('sectionId') || 0);
+  const topicName = asText(formData, 'topicName');
+  const totalItems = Number(formData.get('totalItems') || 0);
+  const scores = JSON.parse(String(formData.get('scores') || '[]'))
+    .map((score) => ({
+      studentId: Number(score.studentId || 0),
+      correct: Number(score.correct || 0),
+      percent: Number(score.percent || 0)
+    }))
+    .filter((score) => score.studentId > 0);
+
+  if (!sectionId || !topicName || !totalItems || scores.length === 0) {
+    return { error: 'Missing science quiz details.' };
+  }
+
+  const result = await saveScienceQuiz({
+    teacherId: session.userId,
+    sectionId,
+    topicName,
+    totalItems,
+    scores
+  });
+
+  revalidatePath('/teacher/dashboard');
+  return { success: `Saved ${result.saved} science scores.` };
+}
+
+export async function saveInterventionAction(session, formData) {
+  const studentId = Number(formData.get('studentId') || 0);
+  const priority = asText(formData, 'priority');
+  const concernArea = asText(formData, 'concernArea');
+  const notes = asText(formData, 'notes');
+  const status = asText(formData, 'status') || 'Open';
+
+  if (!studentId || !priority || !concernArea || !notes) {
+    return { error: 'All intervention fields are required.' };
+  }
+
+  await saveIntervention({
+    studentId,
+    priority,
+    concernArea,
+    notes,
+    status,
+    teacherId: session.userId
+  });
+
+  revalidatePath('/teacher/dashboard');
+  revalidatePath('/admin/dashboard');
+  return { success: 'Intervention note saved.' };
 }

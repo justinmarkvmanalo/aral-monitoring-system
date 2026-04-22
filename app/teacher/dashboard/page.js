@@ -1,9 +1,22 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { addStudentAction, saveAttendanceAction, teacherLogoutAction } from '@/app/actions';
+import {
+  addStudentAction,
+  saveAttendanceAction,
+  saveNumeracyDrillAction,
+  saveNumeracyScoresAction,
+  saveReadingAssessmentAction,
+  saveScienceQuizAction,
+  saveInterventionAction,
+  teacherLogoutAction
+} from '@/app/actions';
 import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
+import InterventionTracker from '@/components/InterventionTracker';
+import NumeracyPractice from '@/components/NumeracyPractice';
+import ReadingTracker from '@/components/ReadingTracker';
+import ScienceTracker from '@/components/ScienceTracker';
 import SubmitButton from '@/components/SubmitButton';
 import { requireRole } from '@/lib/auth';
 import { getTeacherDashboardData } from '@/lib/data';
@@ -26,6 +39,11 @@ export default async function TeacherDashboardPage() {
 
   const addStudent = addStudentAction.bind(null, session);
   const saveAttendance = saveAttendanceAction.bind(null, session);
+  const saveNumeracyDrill = saveNumeracyDrillAction.bind(null, session);
+  const saveNumeracyScores = saveNumeracyScoresAction.bind(null, session);
+  const saveReadingAssessment = saveReadingAssessmentAction.bind(null, session);
+  const saveScienceQuiz = saveScienceQuizAction.bind(null, session);
+  const saveIntervention = saveInterventionAction.bind(null, session);
   const attendanceLookup = buildAttendanceLookup(data.attendance);
 
   return (
@@ -146,23 +164,35 @@ export default async function TeacherDashboardPage() {
           )}
         </section>
 
-        <section className="three-col">
-          <div className="panel">
-            <h2>Reading Tracker</h2>
-            <p className="lead">The detailed Phil-IRI assessor is not ported yet. This Vercel rebuild currently covers the core operational flows first.</p>
-            <span className="pill amber">Pending Module Port</span>
-          </div>
-          <div className="panel">
-            <h2>Numeracy Practice</h2>
-            <p className="lead">The original drill generator is not ported yet. The database structure remains ready for a later Next.js module.</p>
-            <span className="pill amber">Pending Module Port</span>
-          </div>
-          <div className="panel">
-            <h2>Science & Interventions</h2>
-            <p className="lead">These pages can be added after the Vercel deployment path is stable.</p>
-            <span className="pill amber">Pending Module Port</span>
-          </div>
-        </section>
+        <NumeracyPractice
+          sectionId={data.section.id}
+          students={data.students}
+          initialDrill={data.numeracy.latestDrill}
+          initialScores={data.numeracy.scores}
+          saveDrillAction={saveNumeracyDrill}
+          saveScoresAction={saveNumeracyScores}
+        />
+
+        <ReadingTracker
+          students={data.students}
+          assessments={data.reading.assessments}
+          action={saveReadingAssessment}
+        />
+
+        <ScienceTracker
+          sectionId={data.section.id}
+          students={data.students}
+          summary={data.science.summary}
+          scores={data.science.scores}
+          action={saveScienceQuiz}
+        />
+
+        <InterventionTracker
+          students={data.students}
+          flags={data.interventions.flags}
+          records={data.interventions.records}
+          action={saveIntervention}
+        />
       </div>
     </main>
   );

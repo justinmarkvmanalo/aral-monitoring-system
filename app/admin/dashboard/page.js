@@ -1,5 +1,16 @@
-import { adminLogoutAction, addAnnouncementAction, addTeacherAction } from '@/app/actions';
-import { AddAnnouncementForm, AddTeacherForm } from '@/components/AdminForms';
+import {
+  adminLogoutAction,
+  addAnnouncementAction,
+  addTeacherAction,
+  deleteAnnouncementAction,
+  deleteTeacherAction
+} from '@/app/actions';
+import {
+  AddAnnouncementForm,
+  AddTeacherForm,
+  DeleteAnnouncementForm,
+  DeleteTeacherForm
+} from '@/components/AdminForms';
 import SubmitButton from '@/components/SubmitButton';
 import { requireRole } from '@/lib/auth';
 import { getAdminDashboardData } from '@/lib/data';
@@ -9,6 +20,8 @@ export default async function AdminDashboardPage() {
   const data = await getAdminDashboardData();
   const addTeacher = addTeacherAction;
   const addAnnouncement = addAnnouncementAction.bind(null, session);
+  const deleteTeacher = deleteTeacherAction;
+  const deleteAnnouncement = deleteAnnouncementAction;
 
   return (
     <main className="shell">
@@ -46,7 +59,10 @@ export default async function AdminDashboardPage() {
           <div className="metric-card">
             <h3>Attendance Today</h3>
             <strong>{data.attendanceSummary.P}</strong>
-            <span>P: {data.attendanceSummary.P} | A: {data.attendanceSummary.A} | L: {data.attendanceSummary.L}</span>
+            <span>
+              P: {data.attendanceSummary.P} | A: {data.attendanceSummary.A} | L: {data.attendanceSummary.L} | U:{' '}
+              {data.unmarkedToday}
+            </span>
           </div>
         </section>
 
@@ -75,6 +91,7 @@ export default async function AdminDashboardPage() {
                     <th>Email</th>
                     <th>Section</th>
                     <th>Learners</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -84,6 +101,9 @@ export default async function AdminDashboardPage() {
                       <td>{teacher.email}</td>
                       <td>{teacher.section_name || 'Unassigned'}</td>
                       <td>{teacher.student_count}</td>
+                      <td>
+                        <DeleteTeacherForm action={deleteTeacher} teacherId={teacher.id} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -121,6 +141,73 @@ export default async function AdminDashboardPage() {
         </section>
 
         <section className="table-card">
+          <h2>Section Attendance Today</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Section</th>
+                  <th>Present</th>
+                  <th>Absent</th>
+                  <th>Late</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.sectionAttendance.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="subtle">No section attendance data yet.</td>
+                  </tr>
+                ) : (
+                  data.sectionAttendance.map((section) => (
+                    <tr key={section.id}>
+                      <td>Grade {section.grade_level} | {section.section_name}</td>
+                      <td>{section.present}</td>
+                      <td>{section.absent}</td>
+                      <td>{section.late}</td>
+                      <td>{section.total}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="table-card">
+          <h2>Attendance Interventions</h2>
+          <p className="lead">Students with 3 or more absences this month.</p>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Section</th>
+                  <th>Teacher</th>
+                  <th>Absences</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.interventions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="subtle">No intervention cases right now.</td>
+                  </tr>
+                ) : (
+                  data.interventions.map((student) => (
+                    <tr key={student.id}>
+                      <td>{student.last_name}, {student.first_name}</td>
+                      <td>{student.section_name}</td>
+                      <td>{student.teacher_name || 'Unassigned'}</td>
+                      <td>{student.absence_count}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="table-card">
           <h2>Recent Announcements</h2>
           <div className="page-grid">
             {data.announcements.length === 0 ? (
@@ -128,9 +215,14 @@ export default async function AdminDashboardPage() {
             ) : (
               data.announcements.map((announcement) => (
                 <div key={announcement.id} className="panel">
-                  <strong>{announcement.title}</strong>
-                  <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
-                  <div className="subtle">{new Date(announcement.created_at).toLocaleString('en-PH')}</div>
+                  <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                    <div>
+                      <strong>{announcement.title}</strong>
+                      <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
+                      <div className="subtle">{new Date(announcement.created_at).toLocaleString('en-PH')}</div>
+                    </div>
+                    <DeleteAnnouncementForm action={deleteAnnouncement} announcementId={announcement.id} />
+                  </div>
                 </div>
               ))
             )}

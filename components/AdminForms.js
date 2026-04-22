@@ -53,3 +53,29 @@ export function AddAnnouncementForm({ action }) {
     </form>
   );
 }
+
+export function DeleteTeacherForm({ action, teacherId }) {
+  const [state, formAction] = useActionState(action, {});
+
+  return (
+    <form action={formAction} className="inline-form">
+      <input type="hidden" name="teacherId" value={teacherId} />
+      {state?.error ? <div className="subtle error-text">{state.error}</div> : null}
+      {state?.success ? <div className="subtle success-text">{state.success}</div> : null}
+      <SubmitButton className="button-danger">Delete</SubmitButton>
+    </form>
+  );
+}
+
+export function DeleteAnnouncementForm({ action, announcementId }) {
+  const [state, formAction] = useActionState(action, {});
+
+  return (
+    <form action={formAction} className="inline-form">
+      <input type="hidden" name="announcementId" value={announcementId} />
+      {state?.error ? <div className="subtle error-text">{state.error}</div> : null}
+      {state?.success ? <div className="subtle success-text">{state.success}</div> : null}
+      <SubmitButton className="button-danger">Delete</SubmitButton>
+    </form>
+  );
+}
