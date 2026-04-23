@@ -18,6 +18,20 @@ export default function TeacherDashboardClient({
   attendanceLookup 
 }) {
   const [activeItem, setActiveItem] = useState('dashboard');
+  const openInterventions = data.interventions.records.filter(
+    (record) => record.status === 'Open' || record.status === 'In Progress'
+  ).length;
+  const readingNeedsSupport = data.reading.assessments.filter(
+    (assessment) => assessment.level !== 'Independent'
+  ).length;
+  const scienceNeedsReview = data.science.summary.reduce(
+    (total, entry) => total + Number(entry.needs_review || 0),
+    0
+  );
+  const attendanceMarked = data.stats.presentToday + data.stats.absentToday + data.stats.lateToday;
+  const attendanceRate = data.stats.totalStudents
+    ? Math.round((data.stats.presentToday / data.stats.totalStudents) * 100)
+    : 0;
 
   const renderContent = () => {
     switch (activeItem) {
@@ -173,9 +187,98 @@ export default function TeacherDashboardClient({
 
       case 'reports':
         return (
-          <div className="panel">
-            <h2>Auto Reports</h2>
-            <p>Reports and analytics will be available here.</p>
+          <div className="page-grid">
+            <div className="page-header">
+              <h1>Auto Reports</h1>
+              <p>Live section summaries based on the same attendance and learner tracking data used in the dashboard.</p>
+            </div>
+
+            <section className="four-col">
+              <div className="metric-card">
+                <h3>Attendance Rate</h3>
+                <strong>{attendanceRate}%</strong>
+                <span>{attendanceMarked} learner records marked today</span>
+              </div>
+              <div className="metric-card">
+                <h3>Reading Support</h3>
+                <strong>{readingNeedsSupport}</strong>
+                <span>Assessments below Independent level</span>
+              </div>
+              <div className="metric-card">
+                <h3>Science Review</h3>
+                <strong>{scienceNeedsReview}</strong>
+                <span>Learner results below the pass threshold</span>
+              </div>
+              <div className="metric-card">
+                <h3>Open Cases</h3>
+                <strong>{openInterventions}</strong>
+                <span>Interventions still requiring follow-up</span>
+              </div>
+            </section>
+
+            <section className="two-col">
+              <div className="panel">
+                <h2>Submission Snapshot</h2>
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th>School Year</th>
+                      <td>{data.section.school_year_label || 'Not set'}</td>
+                    </tr>
+                    <tr>
+                      <th>Section</th>
+                      <td>Grade {data.section.grade_level} | {data.section.section_name}</td>
+                    </tr>
+                    <tr>
+                      <th>Total Learners</th>
+                      <td>{data.stats.totalStudents}</td>
+                    </tr>
+                    <tr>
+                      <th>Latest Numeracy Drill</th>
+                      <td>{data.numeracy.latestDrill?.label || data.numeracy.latestDrill?.skill_name || 'No saved drill yet'}</td>
+                    </tr>
+                    <tr>
+                      <th>Latest Science Check</th>
+                      <td>{data.science.summary[0] ? `${data.science.summary[0].topic_name} (${data.science.summary[0].quiz_date})` : 'No quiz yet'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="panel">
+                <h2>Priority Learners</h2>
+                {data.interventions.flags.length === 0 ? (
+                  <div className="subtle">No automatic flags right now.</div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Student</th>
+                          <th>Concern</th>
+                          <th>Metric</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.interventions.flags.slice(0, 8).map((flag, index) => (
+                          <tr key={`${flag.student_id}-${flag.concern_area}-${index}`}>
+                            <td>{flag.last_name}, {flag.first_name}</td>
+                            <td>{flag.concern_area}</td>
+                            <td>
+                              {flag.concern_area === 'Attendance'
+                                ? `${flag.metric} absences`
+                                : flag.concern_area === 'Science'
+                                  ? `${flag.metric}% average`
+                                  : 'Needs support'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         );
 
@@ -204,7 +307,7 @@ export default function TeacherDashboardClient({
 
   return (
     <>
-      <TopNav user={session} role="teacher" />
+      <TopNav user={session} role="teacher" schoolYearLabel={data.section.school_year_label} />
       <div className="main-wrap">
         <Sidebar 
           role="teacher" 
@@ -212,7 +315,7 @@ export default function TeacherDashboardClient({
           onNavigate={setActiveItem} 
           counts={{ 
             students: data.stats.totalStudents,
-            interventions: data.interventions.records.filter(r => r.status === 'active').length 
+            interventions: openInterventions
           }} 
         />
         <main className="content">

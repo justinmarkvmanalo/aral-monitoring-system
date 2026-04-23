@@ -15,6 +15,16 @@ export default function AdminDashboardClient({
   actions 
 }) {
   const [activeItem, setActiveItem] = useState('overview');
+  const schoolYearLabel =
+    data.sections.find((section) => section.school_year_label)?.school_year_label || 'School Year Not Set';
+  const averageSectionCoverage = data.sections.length
+    ? Math.round(
+        data.sectionAttendance.reduce((total, section) => {
+          if (!section.total) return total;
+          return total + ((Number(section.present) + Number(section.late)) / Number(section.total)) * 100;
+        }, 0) / data.sections.length
+      )
+    : 0;
 
   const renderContent = () => {
     switch (activeItem) {
@@ -232,9 +242,98 @@ export default function AdminDashboardClient({
 
       case 'reports':
         return (
-          <div className="panel">
-            <h2>School Reports</h2>
-            <p>School-wide analytics and export features will be available here.</p>
+          <div className="page-grid">
+            <div className="page-header">
+              <h1>School Reports</h1>
+              <p>School-wide reporting is now integrated with live teacher, section, attendance, and intervention data.</p>
+            </div>
+
+            <section className="four-col">
+              <div className="metric-card">
+                <h3>Teachers</h3>
+                <strong>{data.teachers.length}</strong>
+                <span>Registered teacher accounts</span>
+              </div>
+              <div className="metric-card">
+                <h3>Sections</h3>
+                <strong>{data.sections.length}</strong>
+                <span>Classes currently tracked</span>
+              </div>
+              <div className="metric-card">
+                <h3>Coverage Today</h3>
+                <strong>{averageSectionCoverage}%</strong>
+                <span>Average present-or-late coverage by section</span>
+              </div>
+              <div className="metric-card">
+                <h3>Flagged Learners</h3>
+                <strong>{data.interventions.length}</strong>
+                <span>Students with 3 or more absences this month</span>
+              </div>
+            </section>
+
+            <section className="two-col">
+              <div className="panel">
+                <h2>Teacher Summary</h2>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Teacher</th>
+                        <th>Section</th>
+                        <th>Learners</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.teachers.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="subtle">No teachers yet.</td>
+                        </tr>
+                      ) : (
+                        data.teachers.map((teacher) => (
+                          <tr key={teacher.id}>
+                            <td>{teacher.full_name}</td>
+                            <td>{teacher.section_name || 'Unassigned'}</td>
+                            <td>{teacher.student_count}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="panel">
+                <h2>Section Attendance Snapshot</h2>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Section</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Late</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.sectionAttendance.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="subtle">No attendance posted yet.</td>
+                        </tr>
+                      ) : (
+                        data.sectionAttendance.map((section) => (
+                          <tr key={section.id}>
+                            <td>Grade {section.grade_level} | {section.section_name}</td>
+                            <td>{section.present}</td>
+                            <td>{section.absent}</td>
+                            <td>{section.late}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
           </div>
         );
 
@@ -245,7 +344,7 @@ export default function AdminDashboardClient({
 
   return (
     <>
-      <TopNav user={session} role="admin" />
+      <TopNav user={session} role="admin" schoolYearLabel={schoolYearLabel} />
       <div className="main-wrap">
         <Sidebar 
           role="admin" 
