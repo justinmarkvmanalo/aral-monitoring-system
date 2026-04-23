@@ -298,7 +298,7 @@ export async function saveNumeracyScoresAction(session, formData) {
   return { success: true, ...result };
 }
 
-export async function saveReadingAssessmentAction(session, formData) {
+export async function saveReadingAssessmentAction(session, _, formData) {
   const studentId = Number(formData.get('studentId') || 0);
   const assessedDate = asText(formData, 'assessedDate');
   const level = asText(formData, 'level');
@@ -324,7 +324,7 @@ export async function saveReadingAssessmentAction(session, formData) {
   return { success: 'Reading assessment saved.' };
 }
 
-export async function saveScienceQuizAction(session, formData) {
+export async function saveScienceQuizAction(session, _, formData) {
   const sectionId = Number(formData.get('sectionId') || 0);
   const topicName = asText(formData, 'topicName');
   const totalItems = Number(formData.get('totalItems') || 0);
@@ -352,7 +352,7 @@ export async function saveScienceQuizAction(session, formData) {
   return { success: `Saved ${result.saved} science scores.` };
 }
 
-export async function saveInterventionAction(session, formData) {
+export async function saveInterventionAction(session, _, formData) {
   const studentId = Number(formData.get('studentId') || 0);
   const priority = asText(formData, 'priority');
   const concernArea = asText(formData, 'concernArea');
