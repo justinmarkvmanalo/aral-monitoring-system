@@ -43,6 +43,93 @@ const PASSAGES = [
   }
 ];
 
+const COMPREHENSION_QUESTIONS = {
+  g1_p1: [
+    {
+      id: 'g1_q1',
+      prompt: 'Sino ang kasama ng bata sa pamilya?',
+      options: ['Nanay, Tatay, at kapatid', 'Guro at kaklase', 'Lolo at Lola'],
+      answer: 0
+    },
+    {
+      id: 'g1_q2',
+      prompt: 'Ano ang ginagawa nila bago matulog?',
+      options: ['Naglalaro', 'Nagdadasal', 'Umaalis ng bahay'],
+      answer: 1
+    }
+  ],
+  g2_p1: [
+    {
+      id: 'g2_q1',
+      prompt: 'Ano ang ugali ng nanay?',
+      options: ['Tamad at tahimik', 'Masipag at mapagmahal', 'Magulo at makulit'],
+      answer: 1
+    },
+    {
+      id: 'g2_q2',
+      prompt: 'Kailan tumutulong ang nanay sa aralin?',
+      options: ['Pagkatapos ng klase', 'Bago mag-almusal', 'Habang natutulog'],
+      answer: 0
+    }
+  ],
+  g3_p1: [
+    {
+      id: 'g3_q1',
+      prompt: 'Bakit maagang gumigising ang mangingisda?',
+      options: ['Upang pumalaot sa dagat', 'Upang mamasyal', 'Upang maglinis ng paaralan'],
+      answer: 0
+    },
+    {
+      id: 'g3_q2',
+      prompt: 'Ano ang inihahagis niya sa dagat?',
+      options: ['Pala', 'Lambat', 'Sako'],
+      answer: 1
+    }
+  ],
+  g4_p1: [
+    {
+      id: 'g4_q1',
+      prompt: 'Bakit mahalagang pangalagaan ang kalikasan?',
+      options: ['Dito nanggagaling ang malinis na hangin, tubig, at pagkain', 'Para dumami ang sasakyan', 'Para umiinit ang panahon'],
+      answer: 0
+    },
+    {
+      id: 'g4_q2',
+      prompt: 'Ano ang isang mabuting gawain sa teksto?',
+      options: ['Magtapon kung saan-saan', 'Magtanim ng puno', 'Magsunog ng basura'],
+      answer: 1
+    }
+  ],
+  g5_p1: [
+    {
+      id: 'g5_q1',
+      prompt: 'Saan mahalaga ang pagtutulungan?',
+      options: ['Sa tahanan, paaralan, at pamayanan', 'Sa palaruan lamang', 'Sa tindahan lamang'],
+      answer: 0
+    },
+    {
+      id: 'g5_q2',
+      prompt: 'Ano ang bunga ng pagtutulungan?',
+      options: ['Mas mabagal ang gawain', 'Mas maayos ang samahan', 'Mas maraming away'],
+      answer: 1
+    }
+  ],
+  g6_p1: [
+    {
+      id: 'g6_q1',
+      prompt: 'Ano ang papel ng kabataang Pilipino?',
+      options: ['Mahalagang papel sa kinabukasan ng bansa', 'Maglaro buong araw', 'Umalis sa paaralan'],
+      answer: 0
+    },
+    {
+      id: 'g6_q2',
+      prompt: 'Ano ang makatutulong sa pagbuo ng matatag na lipunan?',
+      options: ['Sipag, disiplina, at malasakit', 'Inggit at katamaran', 'Pag-iwas sa tungkulin'],
+      answer: 0
+    }
+  ]
+};
+
 const WPM_NORMS = {
   1: { independent: 70, instructionalLow: 31 },
   2: { independent: 100, instructionalLow: 61 },
@@ -323,15 +410,15 @@ function buildTeacherRecommendations({ finalReadingLevel, majorMiscues, wpmLevel
 
 function buildComprehensionNote(comprehensionPct) {
   if (!Number.isFinite(comprehensionPct) || comprehensionPct <= 0) {
-    return 'Comprehension has not been encoded yet. The oral reading level shown here is based on word recognition and reading speed only.';
+    return 'No comprehension score yet.';
   }
   if (comprehensionPct >= 75) {
-    return 'Encoded comprehension is relatively strong, so follow-up should focus on maintaining accuracy and fluent oral reading.';
+    return 'Good comprehension.';
   }
   if (comprehensionPct >= 50) {
-    return 'Encoded comprehension is partial. Guided retelling and teacher questioning are recommended after oral reading.';
+    return 'Partial comprehension.';
   }
-  return 'Encoded comprehension is low. The learner likely needs explicit support with both oral reading and meaning-making after reading.';
+  return 'Low comprehension.';
 }
 
 function analyzeReadingPerformance({ passageTitle, passageText, transcript, gradeLevel, readingSeconds, comprehensionPct, period }) {
@@ -588,6 +675,7 @@ export default function ReadingTracker({ students, assessments, action }) {
   const [period, setPeriod] = useState('Pre-test');
   const [readingSeconds, setReadingSeconds] = useState('');
   const [comprehensionPct, setComprehensionPct] = useState('');
+  const [comprehensionAnswers, setComprehensionAnswers] = useState({});
   const [studentId, setStudentId] = useState('');
   const [transcript, setTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -613,6 +701,28 @@ export default function ReadingTracker({ students, assessments, action }) {
   }, [customPassage, selectedPassageId]);
 
   const totalWords = useMemo(() => tokenizeForAnalysis(passage.text).length, [passage.text]);
+  const comprehensionQuestions = useMemo(
+    () => COMPREHENSION_QUESTIONS[selectedPassageId] || [],
+    [selectedPassageId]
+  );
+  const resolvedComprehensionPct = useMemo(() => {
+    if (comprehensionQuestions.length === 0) {
+      return Number(comprehensionPct || 0);
+    }
+
+    const answered = comprehensionQuestions.filter(
+      (question) => comprehensionAnswers[question.id] !== undefined
+    );
+    if (answered.length === 0) {
+      return 0;
+    }
+
+    const correct = comprehensionQuestions.reduce((count, question) => {
+      return count + (Number(comprehensionAnswers[question.id]) === question.answer ? 1 : 0);
+    }, 0);
+
+    return Math.round((correct / comprehensionQuestions.length) * 100);
+  }, [comprehensionAnswers, comprehensionPct, comprehensionQuestions]);
 
   const analysis = useMemo(
     () =>
@@ -622,10 +732,10 @@ export default function ReadingTracker({ students, assessments, action }) {
         transcript,
         gradeLevel,
         readingSeconds: Number(readingSeconds || 0),
-        comprehensionPct: Number(comprehensionPct || 0),
+        comprehensionPct: resolvedComprehensionPct,
         period
       }),
-    [comprehensionPct, gradeLevel, passage.text, passage.title, period, readingSeconds, transcript]
+    [gradeLevel, passage.text, passage.title, period, readingSeconds, resolvedComprehensionPct, transcript]
   );
 
   useEffect(() => {
@@ -650,7 +760,9 @@ export default function ReadingTracker({ students, assessments, action }) {
       if (matchedPassage?.grade) {
         setGradeLevel(matchedPassage.grade);
       }
+      setComprehensionPct('');
     }
+    setComprehensionAnswers({});
   }, [selectedPassageId]);
 
   function startTimer() {
@@ -793,32 +905,10 @@ export default function ReadingTracker({ students, assessments, action }) {
   return (
     <section className="table-card">
       <h2>Reading Tracker</h2>
-      <p className="lead">
-        The voice assessor is now integrated into the app. It listens through the browser microphone,
-        builds a transcript, checks miscues locally against the passage, and computes Phil-IRI oral
-        reading results without depending on the old PHP flow.
-      </p>
-
-      <div className="panel reading-legend">
-        <div className="three-col">
-          <div>
-            <h3>Word Recognition</h3>
-            <p className="lead">Independent: 97-100% | Instructional: 90-96% | Frustration: 89% and below</p>
-          </div>
-          <div>
-            <h3>Speed Rule</h3>
-            <p className="lead">WPM is still computed from total passage words divided by recorded seconds.</p>
-          </div>
-          <div>
-            <h3>Accuracy Upgrade</h3>
-            <p className="lead">Scoring now uses normalized token matching with omission, substitution, insertion, and repetition handling.</p>
-          </div>
-        </div>
-      </div>
 
       <div className="two-col reading-grid">
         <div className="panel">
-          <h3>Assessment Setup</h3>
+          <h3>Assessment</h3>
           <form action={formAction} className="form-grid">
             {state?.error ? <div className="banner error">{state.error}</div> : null}
             {state?.success ? <div className="banner success">{state.success}</div> : null}
@@ -894,11 +984,11 @@ export default function ReadingTracker({ students, assessments, action }) {
             </div>
 
             <div className="field">
-              <label>Voice Transcript</label>
+              <label>Transcript</label>
               <textarea
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
-                placeholder="Use the mic or paste the learner's oral reading transcript."
+                placeholder="Use the mic or paste the reading transcript."
               />
             </div>
 
@@ -942,17 +1032,49 @@ export default function ReadingTracker({ students, assessments, action }) {
               </div>
             </div>
 
-            <div className="two-col">
+            {comprehensionQuestions.length > 0 ? (
+              <div className="field">
+                <label>Comprehension Questions</label>
+                <div className="page-grid">
+                  {comprehensionQuestions.map((question) => (
+                    <div key={question.id} className="panel" style={{ background: 'var(--surface-alt)', boxShadow: 'none' }}>
+                      <strong>{question.prompt}</strong>
+                      <div className="form-grid" style={{ marginTop: 10 }}>
+                        {question.options.map((option, optionIndex) => (
+                          <label key={option} className="subtle" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <input
+                              type="radio"
+                              name={question.id}
+                              checked={Number(comprehensionAnswers[question.id]) === optionIndex}
+                              onChange={() =>
+                                setComprehensionAnswers((current) => ({ ...current, [question.id]: optionIndex }))
+                              }
+                            />
+                            {option}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
               <div className="field">
                 <label>Comprehension %</label>
                 <input
                   type="number"
-                  name="comprehensionPct"
                   min="0"
                   max="100"
                   value={comprehensionPct}
                   onChange={(event) => setComprehensionPct(event.target.value)}
                 />
+              </div>
+            )}
+
+            <div className="two-col">
+              <div className="field">
+                <label>Comprehension Score</label>
+                <input value={resolvedComprehensionPct} readOnly />
               </div>
               <div className="field">
                 <label>Pronunciation</label>
@@ -962,6 +1084,7 @@ export default function ReadingTracker({ students, assessments, action }) {
 
             <input type="hidden" name="level" value={analysis.level} />
             <input type="hidden" name="notes" value={analysis.notes} />
+            <input type="hidden" name="comprehensionPct" value={resolvedComprehensionPct} />
 
             <SubmitButton>Save Reading Assessment</SubmitButton>
           </form>
@@ -970,8 +1093,7 @@ export default function ReadingTracker({ students, assessments, action }) {
         <div className="panel">
           <div className="nav-strip" style={{ marginBottom: 16 }}>
             <div>
-              <h3 style={{ marginBottom: 8 }}>Voice Reading Preview</h3>
-              <p className="lead">Use the microphone for live capture or paste a transcript, then review the computed Phil-IRI result below.</p>
+              <h3 style={{ marginBottom: 8 }}>Results</h3>
             </div>
             <div className="reading-live-timer">
               <strong>{formatTimer(Number(readingSeconds || 0))}</strong>
@@ -1019,22 +1141,16 @@ export default function ReadingTracker({ students, assessments, action }) {
 
           <div className="reading-feedback-stack">
             <div className="panel reading-feedback-panel">
-              <h3>Fluency Observation</h3>
-              <p className="lead" style={{ margin: 0 }}>
+              <h3>Fluency</h3>
+              <p className="subtle" style={{ margin: 0 }}>
                 {analysis.ready
                   ? analysis.fluencyObservations
-                  : 'Start the mic or paste a transcript, then record the reading time to generate a result.'}
+                  : 'Record reading to see the result.'}
               </p>
             </div>
             <div className="panel reading-feedback-panel">
-              <h3>Teacher Recommendations</h3>
-              <p className="lead" style={{ margin: 0 }}>
-                {analysis.ready ? analysis.teacherRecommendations : 'Recommendations will appear after transcript analysis.'}
-              </p>
-            </div>
-            <div className="panel reading-feedback-panel">
-              <h3>Comprehension Note</h3>
-              <p className="lead" style={{ margin: 0 }}>{analysis.comprehensionNote}</p>
+              <h3>Comprehension</h3>
+              <p className="subtle" style={{ margin: 0 }}>{analysis.comprehensionNote}</p>
             </div>
           </div>
         </div>
