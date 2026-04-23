@@ -565,6 +565,15 @@ function formatTimer(seconds) {
   return `${minutes}:${remaining.toString().padStart(2, '0')}`;
 }
 
+function formatDateValue(value) {
+  if (!value) return '-';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleDateString('en-PH');
+}
+
 function levelClassName(level) {
   if (level === 'Independent') return 'green';
   if (level === 'Instructional') return 'amber';
@@ -1114,7 +1123,7 @@ export default function ReadingTracker({ students, assessments, action }) {
                 {assessments.map((assessment) => (
                   <tr key={assessment.id}>
                     <td>{assessment.last_name}, {assessment.first_name}</td>
-                    <td>{assessment.assessed_date}</td>
+                    <td>{formatDateValue(assessment.assessed_date)}</td>
                     <td>{assessment.level}</td>
                     <td>{assessment.comprehension_pct}%</td>
                     <td>{assessment.pronunciation}</td>

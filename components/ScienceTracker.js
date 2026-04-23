@@ -58,6 +58,15 @@ const SCIENCE_QUIZZES = {
   ]
 };
 
+function formatDateValue(value) {
+  if (!value) return '-';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleDateString('en-PH');
+}
+
 export default function ScienceTracker({ sectionId, students, summary, scores, action }) {
   const [state, formAction] = useActionState(action, {});
   const [topicName, setTopicName] = useState(Object.keys(SCIENCE_QUIZZES)[0]);
@@ -205,7 +214,7 @@ export default function ScienceTracker({ sectionId, students, summary, scores, a
                 <tbody>
                   {summary.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.quiz_date}</td>
+                      <td>{formatDateValue(row.quiz_date)}</td>
                       <td>{row.topic_name}</td>
                       <td>{row.class_avg ?? 0}%</td>
                       <td>{row.passed}</td>
