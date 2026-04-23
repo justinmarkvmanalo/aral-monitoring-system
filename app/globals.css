@@ -22,6 +22,11 @@
   box-sizing: border-box;
 }
 
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
@@ -184,6 +189,8 @@ body {
   transition: background 0.15s, color 0.15s;
   margin-bottom: 2px;
   user-select: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .nav-item:hover {
@@ -214,6 +221,7 @@ body {
   padding: 2px 7px;
   border-radius: 20px;
   color: #9ca3a0;
+  flex-shrink: 0;
 }
 
 .nav-count.alert {
@@ -226,6 +234,7 @@ body {
   flex: 1;
   padding: 24px;
   background: #f4f6f3;
+  min-width: 0;
 }
 
 .page-header {
@@ -274,6 +283,9 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .hero-card,
@@ -289,6 +301,8 @@ textarea {
   gap: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .brand.auth-brand {
@@ -310,29 +324,34 @@ textarea {
 .lead {
   color: var(--muted);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .page-grid {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .two-col {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+  min-width: 0;
 }
 
 .three-col {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  min-width: 0;
 }
 
 .four-col {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+  min-width: 0;
 }
 
 .actions,
@@ -356,6 +375,9 @@ textarea {
   cursor: pointer;
   font-weight: 700;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .button {
@@ -401,6 +423,7 @@ textarea {
   border-radius: 12px;
   padding: 12px 14px;
   background: var(--surface-alt);
+  min-width: 0;
 }
 
 .field textarea {
@@ -423,6 +446,7 @@ textarea {
 
 .metric-card {
   padding: 18px;
+  min-width: 0;
 }
 
 .metric-card h3 {
@@ -430,17 +454,22 @@ textarea {
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .metric-card strong {
   display: block;
   margin-top: 10px;
   font-size: 2rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .metric-card span {
   color: var(--muted);
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .auth-wrap {
@@ -689,16 +718,19 @@ textarea {
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
+  min-width: 0;
 }
 
 .subtle {
   color: var(--muted);
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table th,
@@ -707,6 +739,8 @@ textarea {
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .table th {
@@ -722,6 +756,9 @@ textarea {
   padding: 4px 10px;
   font-size: 0.8rem;
   font-weight: 700;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pill.green {
@@ -788,6 +825,7 @@ textarea {
   border-radius: 14px;
   background: var(--surface-alt);
   align-items: flex-start;
+  min-width: 0;
 }
 
 .reading-grid {
@@ -800,6 +838,7 @@ textarea {
   border-radius: 14px;
   background: var(--surface-alt);
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .reading-legend {
@@ -848,16 +887,41 @@ textarea {
   background: #f8faff;
   line-height: 1.8;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reading-feedback-stack {
   display: grid;
   gap: 12px;
   margin-top: 16px;
+  min-width: 0;
 }
 
 .reading-feedback-panel {
   box-shadow: none;
+}
+
+.panel h1,
+.panel h2,
+.panel h3,
+.panel h4,
+.table-card h1,
+.table-card h2,
+.table-card h3,
+.metric-card h1,
+.metric-card h2,
+.metric-card h3,
+.auth-card h1,
+.auth-card h2,
+.auth-card h3,
+.panel p,
+.table-card p,
+.metric-card p,
+.panel strong,
+.table-card strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 960px) {
