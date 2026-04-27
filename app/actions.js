@@ -13,6 +13,7 @@ import {
   deleteAnnouncementByAdmin,
   deleteTeacherByAdmin,
   registerTeacher,
+  saveIripChecklist,
   saveReadingAssessment,
   saveNumeracyDrill,
   saveNumeracyScores,
@@ -322,6 +323,40 @@ export async function saveReadingAssessmentAction(session, _, formData) {
 
   revalidatePath('/teacher/dashboard');
   return { success: 'Reading assessment saved.' };
+}
+
+export async function saveIripChecklistAction(session, _, formData) {
+  const studentId = Number(formData.get('studentId') || 0);
+  const gradeLevel = asText(formData, 'gradeLevel');
+  const tutorName = asText(formData, 'tutorName');
+  const rowsRaw = String(formData.get('rows') || '[]');
+
+  if (!studentId || !gradeLevel || !tutorName) {
+    return { error: 'Learner, grade level, and tutor name are required.' };
+  }
+
+  let rows;
+  try {
+    rows = JSON.parse(rowsRaw);
+  } catch {
+    return { error: 'IRIP rows could not be processed.' };
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return { error: 'IRIP checklist rows are required.' };
+  }
+
+  await saveIripChecklist({
+    studentId,
+    gradeLevel,
+    tutorName,
+    rows,
+    teacherId: session.userId
+  });
+
+  revalidatePath('/teacher/dashboard');
+  revalidatePath('/admin/dashboard');
+  return { success: 'IRIP checklist saved.' };
 }
 
 export async function saveScienceQuizAction(session, _, formData) {

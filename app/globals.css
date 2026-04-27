@@ -908,6 +908,163 @@ textarea {
   box-shadow: none;
 }
 
+.irip-shell {
+  padding: 20px;
+}
+
+.irip-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.irip-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.irip-school {
+  font-size: 0.73rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.irip-annex {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #52615a;
+}
+
+.irip-title {
+  margin-top: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.irip-info-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) minmax(140px, 0.7fr) minmax(240px, 1.2fr);
+  gap: 16px;
+  padding: 18px 20px 0;
+}
+
+.irip-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px 0;
+}
+
+.irip-progress-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e7ece8;
+}
+
+.irip-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), #34c38f);
+  transition: width 0.25s ease;
+}
+
+.irip-table-wrap {
+  overflow-x: auto;
+  padding: 16px 20px 0;
+}
+
+.irip-table {
+  min-width: 1080px;
+}
+
+.irip-table th {
+  background: #f5f7f5;
+}
+
+.irip-week-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid #c7d4cb;
+  background: #edf3ee;
+  color: #43574d;
+  font-weight: 700;
+}
+
+.irip-skill {
+  line-height: 1.55;
+}
+
+.irip-status,
+.irip-notes {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  padding: 10px 12px;
+}
+
+.irip-status-observed {
+  border-color: #95d5bf;
+  background: #f0faf6;
+  color: #0f6e56;
+}
+
+.irip-status-partial {
+  border-color: #f2ca7d;
+  background: #fff8ea;
+  color: #935b00;
+}
+
+.irip-status-not {
+  border-color: #e1a8a3;
+  background: #fdf1f1;
+  color: #a32d2d;
+}
+
+.irip-notes {
+  min-height: 44px;
+  resize: vertical;
+}
+
+.irip-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 20px 0;
+}
+
+.irip-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.irip-mark {
+  width: 18px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.irip-mark.observed {
+  color: #0f6e56;
+}
+
+.irip-mark.partial {
+  color: #935b00;
+}
+
+.irip-mark.not {
+  color: #a32d2d;
+}
+
 .landing-hero {
   padding: 32px;
   overflow: hidden;
@@ -1128,6 +1285,10 @@ textarea {
   .landing-title {
     max-width: none;
   }
+
+  .irip-info-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1139,5 +1300,50 @@ textarea {
   .auth-panel {
     padding: 22px;
     border-radius: 22px;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .topnav,
+  .sidebar,
+  .no-print {
+    display: none !important;
+  }
+
+  .content,
+  .main-wrap,
+  .table-card,
+  .irip-shell {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .irip-card {
+    border: none;
+  }
+
+  .irip-table {
+    min-width: 0;
+  }
+
+  .irip-status,
+  .irip-notes,
+  .field input,
+  .field select {
+    border-color: #cdd7d1 !important;
+    background: #fff !important;
+    box-shadow: none !important;
   }
 }

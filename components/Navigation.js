@@ -47,18 +47,7 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
     },
     {
       section: 'Trackers',
-      items: [
-        { id: 'reading', label: 'Reading Progress', icon: 'RD' },
-        { id: 'numeracy', label: 'Numeracy Practice', icon: 'NM' },
-        { id: 'science', label: 'Science Check', icon: 'SC' }
-      ]
-    },
-    {
-      section: 'Reports',
-      items: [
-        { id: 'intervention', label: 'Intervention', icon: 'IN', count: counts.interventions, alert: true },
-        { id: 'reports', label: 'Auto Reports', icon: 'RP' }
-      ]
+      items: [{ id: 'irip', label: 'IRIP', icon: 'IR' }]
     },
     {
       section: 'Settings',

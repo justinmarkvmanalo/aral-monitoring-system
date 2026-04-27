@@ -6,6 +6,7 @@ import { TopNav, Sidebar } from '@/components/Navigation';
 import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
 import InterventionTracker from '@/components/InterventionTracker';
+import IripChecklist from '@/components/IripChecklist';
 import NumeracyPractice from '@/components/NumeracyPractice';
 import ReadingTracker from '@/components/ReadingTracker';
 import ScienceTracker from '@/components/ScienceTracker';
@@ -149,6 +150,17 @@ export default function TeacherDashboardClient({
             students={data.students}
             assessments={data.reading.assessments}
             action={actions.saveReadingAssessment}
+          />
+        );
+
+      case 'irip':
+        return (
+          <IripChecklist
+            students={data.students}
+            records={data.irip.records}
+            section={data.section}
+            defaultTutorName={session.name}
+            action={actions.saveIripChecklist}
           />
         );
 

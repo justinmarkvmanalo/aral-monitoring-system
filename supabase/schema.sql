@@ -132,6 +132,18 @@ create table if not exists reading_levels (
     created_at timestamptz not null default current_timestamp
 );
 
+create table if not exists irip_checklists (
+    id integer generated always as identity primary key,
+    student_id integer not null unique references students(id) on delete cascade,
+    grade_level varchar(30) not null,
+    tutor_name varchar(120) not null,
+    rows jsonb not null default '[]'::jsonb,
+    recorded_by integer not null references teachers(id) on delete restrict,
+    updated_by integer not null references teachers(id) on delete restrict,
+    created_at timestamptz not null default current_timestamp,
+    updated_at timestamptz not null default current_timestamp
+);
+
 create table if not exists science_topics (
     id integer generated always as identity primary key,
     topic_name varchar(120) not null,
@@ -166,6 +178,7 @@ create index if not exists idx_numeracy_drills_teacher_id on numeracy_drills (te
 create index if not exists idx_numeracy_quizzes_section_id on numeracy_quizzes (section_id);
 create index if not exists idx_numeracy_scores_student_id on numeracy_scores (student_id);
 create index if not exists idx_reading_levels_student_id on reading_levels (student_id);
+create index if not exists idx_irip_checklists_student_id on irip_checklists (student_id);
 create index if not exists idx_science_quizzes_section_id on science_quizzes (section_id);
 create index if not exists idx_science_scores_student_id on science_scores (student_id);
 

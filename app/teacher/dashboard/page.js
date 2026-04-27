@@ -6,6 +6,7 @@ import {
   saveNumeracyDrillAction,
   saveNumeracyScoresAction,
   saveReadingAssessmentAction,
+  saveIripChecklistAction,
   saveScienceQuizAction,
   saveInterventionAction
 } from '@/app/actions';
@@ -28,6 +29,7 @@ export default async function TeacherDashboardPage() {
     saveNumeracyDrill: saveNumeracyDrillAction.bind(null, session),
     saveNumeracyScores: saveNumeracyScoresAction.bind(null, session),
     saveReadingAssessment: saveReadingAssessmentAction.bind(null, session),
+    saveIripChecklist: saveIripChecklistAction.bind(null, session),
     saveScienceQuiz: saveScienceQuizAction.bind(null, session),
     saveIntervention: saveInterventionAction.bind(null, session)
   };
