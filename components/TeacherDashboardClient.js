@@ -1,16 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { TopNav, Sidebar } from '@/components/Navigation';
 import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
-import InterventionTracker from '@/components/InterventionTracker';
 import IripChecklist from '@/components/IripChecklist';
-import NumeracyPractice from '@/components/NumeracyPractice';
 import ReadingTracker from '@/components/ReadingTracker';
-import ScienceTracker from '@/components/ScienceTracker';
-import SubmitButton from '@/components/SubmitButton';
 
 export default function TeacherDashboardClient({ 
   session, 
@@ -25,16 +20,24 @@ export default function TeacherDashboardClient({
     Math.max(attendanceWeeks.length - 1, 0)
   );
   const [selectedAttendanceWeek, setSelectedAttendanceWeek] = useState(defaultAttendanceWeek);
-  const openInterventions = data.interventions.records.filter(
-    (record) => record.status === 'Open' || record.status === 'In Progress'
-  ).length;
-  const readingNeedsSupport = data.reading.assessments.filter(
+  const latestReadingAssessments = useMemo(() => {
+    const latestByStudent = new Map();
+
+    data.reading.assessments.forEach((assessment) => {
+      if (!latestByStudent.has(assessment.student_id)) {
+        latestByStudent.set(assessment.student_id, assessment);
+      }
+    });
+
+    return Array.from(latestByStudent.values());
+  }, [data.reading.assessments]);
+  const readingNeedsSupport = latestReadingAssessments.filter(
     (assessment) => assessment.level !== 'Independent'
   ).length;
-  const scienceNeedsReview = data.science.summary.reduce(
-    (total, entry) => total + Number(entry.needs_review || 0),
-    0
-  );
+  const readingAssessedLearners = latestReadingAssessments.length;
+  const iripChecklistCount = data.irip.records.length;
+  const iripLearnersTracked = new Set(data.irip.records.map((record) => record.student_id)).size;
+  const attendanceFollowUp = data.stats.absentToday + data.stats.lateToday;
   const attendanceMarked = data.stats.presentToday + data.stats.absentToday + data.stats.lateToday;
   const attendanceRate = data.stats.totalStudents
     ? Math.round((data.stats.presentToday / data.stats.totalStudents) * 100)
@@ -43,26 +46,26 @@ export default function TeacherDashboardClient({
   const supportGraphItems = [
     {
       label: 'Attendance Follow-up',
-      value: data.stats.absentToday + data.stats.lateToday,
+      value: attendanceFollowUp,
       detail: 'Absent or late today',
       tone: 'amber'
     },
     {
       label: 'Reading Support',
       value: readingNeedsSupport,
-      detail: 'Below Independent level',
+      detail: 'Latest result below Independent',
       tone: 'red'
     },
     {
-      label: 'Science Review',
-      value: scienceNeedsReview,
-      detail: 'Below pass threshold',
-      tone: 'amber'
+      label: 'Learners Assessed',
+      value: readingAssessedLearners,
+      detail: 'Saved oral reading results',
+      tone: 'green'
     },
     {
-      label: 'Open Interventions',
-      value: openInterventions,
-      detail: 'Still requiring follow-up',
+      label: 'IRIP Checklists',
+      value: iripChecklistCount,
+      detail: 'Saved learner plans',
       tone: 'green'
     }
   ];
@@ -90,14 +93,14 @@ export default function TeacherDashboardClient({
                 <span>Marked present</span>
               </div>
               <div className="metric-card">
-                <h3>Absent Today</h3>
-                <strong>{data.stats.absentToday}</strong>
-                <span>Needs follow-up</span>
+                <h3>Learners Assessed</h3>
+                <strong>{readingAssessedLearners}</strong>
+                <span>Latest oral reading results saved</span>
               </div>
               <div className="metric-card">
-                <h3>Late Today</h3>
-                <strong>{data.stats.lateToday}</strong>
-                <span>Current session</span>
+                <h3>IRIP Checklists</h3>
+                <strong>{iripChecklistCount}</strong>
+                <span>{iripLearnersTracked} learners with IRIP records</span>
               </div>
             </section>
 
@@ -247,39 +250,6 @@ export default function TeacherDashboardClient({
           />
         );
 
-      case 'numeracy':
-        return (
-          <NumeracyPractice
-            sectionId={data.section.id}
-            students={data.students}
-            initialDrill={data.numeracy.latestDrill}
-            initialScores={data.numeracy.scores}
-            saveDrillAction={actions.saveNumeracyDrill}
-            saveScoresAction={actions.saveNumeracyScores}
-          />
-        );
-
-      case 'science':
-        return (
-          <ScienceTracker
-            sectionId={data.section.id}
-            students={data.students}
-            summary={data.science.summary}
-            scores={data.science.scores}
-            action={actions.saveScienceQuiz}
-          />
-        );
-
-      case 'intervention':
-        return (
-          <InterventionTracker
-            students={data.students}
-            flags={data.interventions.flags}
-            records={data.interventions.records}
-            action={actions.saveIntervention}
-          />
-        );
-
       case 'reports':
         return (
           <div className="page-grid">
@@ -295,19 +265,19 @@ export default function TeacherDashboardClient({
                 <span>{attendanceMarked} learner records marked today</span>
               </div>
               <div className="metric-card">
+                <h3>Attendance Follow-up</h3>
+                <strong>{attendanceFollowUp}</strong>
+                <span>Absent or late today</span>
+              </div>
+              <div className="metric-card">
                 <h3>Reading Support</h3>
                 <strong>{readingNeedsSupport}</strong>
-                <span>Assessments below Independent level</span>
+                <span>Latest reading results needing support</span>
               </div>
               <div className="metric-card">
-                <h3>Science Review</h3>
-                <strong>{scienceNeedsReview}</strong>
-                <span>Learner results below the pass threshold</span>
-              </div>
-              <div className="metric-card">
-                <h3>Open Cases</h3>
-                <strong>{openInterventions}</strong>
-                <span>Interventions still requiring follow-up</span>
+                <h3>IRIP Checklists</h3>
+                <strong>{iripChecklistCount}</strong>
+                <span>{iripLearnersTracked} learners already covered</span>
               </div>
             </section>
 
@@ -329,43 +299,43 @@ export default function TeacherDashboardClient({
                       <td>{data.stats.totalStudents}</td>
                     </tr>
                     <tr>
-                      <th>Latest Numeracy Drill</th>
-                      <td>{data.numeracy.latestDrill?.label || data.numeracy.latestDrill?.skill_name || 'No saved drill yet'}</td>
+                      <th>Reading Assessments Saved</th>
+                      <td>{data.reading.assessments.length}</td>
                     </tr>
                     <tr>
-                      <th>Latest Science Check</th>
-                      <td>{data.science.summary[0] ? `${data.science.summary[0].topic_name} (${data.science.summary[0].quiz_date})` : 'No quiz yet'}</td>
+                      <th>Learners Assessed</th>
+                      <td>{readingAssessedLearners}</td>
+                    </tr>
+                    <tr>
+                      <th>IRIP Checklists Saved</th>
+                      <td>{iripChecklistCount}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               <div className="panel">
-                <h2>Priority Learners</h2>
-                {data.interventions.flags.length === 0 ? (
-                  <div className="subtle">No automatic flags right now.</div>
+                <h2>Latest Reading Status</h2>
+                {latestReadingAssessments.length === 0 ? (
+                  <div className="subtle">No saved oral reading results yet.</div>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
                     <table className="table">
                       <thead>
                         <tr>
                           <th>Student</th>
-                          <th>Concern</th>
-                          <th>Metric</th>
+                          <th>Date</th>
+                          <th>Level</th>
+                          <th>Pronunciation</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {data.interventions.flags.slice(0, 8).map((flag, index) => (
-                          <tr key={`${flag.student_id}-${flag.concern_area}-${index}`}>
-                            <td>{flag.last_name}, {flag.first_name}</td>
-                            <td>{flag.concern_area}</td>
-                            <td>
-                              {flag.concern_area === 'Attendance'
-                                ? `${flag.metric} absences`
-                                : flag.concern_area === 'Science'
-                                  ? `${flag.metric}% average`
-                                  : 'Needs support'}
-                            </td>
+                        {latestReadingAssessments.slice(0, 8).map((assessment) => (
+                          <tr key={assessment.id}>
+                            <td>{assessment.last_name}, {assessment.first_name}</td>
+                            <td>{new Date(assessment.assessed_date).toLocaleDateString('en-PH')}</td>
+                            <td>{assessment.level}</td>
+                            <td>{assessment.pronunciation}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -409,8 +379,7 @@ export default function TeacherDashboardClient({
           activeItem={activeItem} 
           onNavigate={setActiveItem} 
           counts={{ 
-            students: data.stats.totalStudents,
-            interventions: openInterventions
+            students: data.stats.totalStudents
           }} 
         />
         <main className="content">

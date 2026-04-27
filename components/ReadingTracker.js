@@ -314,14 +314,14 @@ function buildTeacherRecommendations({ finalReadingLevel, majorMiscues, wpmLevel
       ? '3. Use shorter repeated oral reading drills to build automaticity before moving to a harder text.'
       : '3. Continue monitored oral reading with immediate corrective feedback on miscues.',
     finalReadingLevel === 'Independent'
-      ? '4. Transition to comprehension questioning and expressive reading tasks.'
+      ? '4. Transition to oral retell and expressive rereading tasks.'
       : '4. Keep the learner on instructional-level passages until miscues and pacing become more stable.'
   ];
 
   return recommendations.join(' ');
 }
 
-function analyzeReadingPerformance({ passageTitle, passageText, transcript, gradeLevel, readingSeconds, comprehensionPct, period }) {
+function analyzeReadingPerformance({ passageTitle, passageText, transcript, gradeLevel, readingSeconds, period }) {
   const passageWords = tokenizeForAnalysis(passageText);
   const transcriptWords = tokenizeForAnalysis(transcript);
   const totalWords = passageWords.length;
@@ -622,7 +622,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
         transcript,
         gradeLevel,
         readingSeconds: Number(readingSeconds || 0),
-        comprehensionPct: 0,
         period
       }),
     [gradeLevel, passage.text, passage.title, period, readingSeconds, transcript]
@@ -856,12 +855,24 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
   const displayedTranscript = [transcript, liveTranscript].filter(Boolean).join(' ');
 
   return (
-    <section className="table-card">
-      <h2>Reading Tracker</h2>
+    <section className="table-card reading-shell">
+      <div className="reading-page-header">
+        <div>
+          <h2>Reading Tracker</h2>
+          <p className="lead" style={{ margin: 0 }}>
+            Capture oral reading, review miscues, and save a clean reading result from one screen.
+          </p>
+        </div>
+      </div>
 
-      <div className="two-col reading-grid">
-        <div className="panel">
-          <h3>Assessment</h3>
+      <div className="reading-grid">
+        <div className="panel reading-form-panel">
+          <div className="reading-panel-copy">
+            <h3>Assessment Setup</h3>
+            <p className="lead" style={{ margin: 0 }}>
+              Select the learner, prepare the passage, then use the mic or paste the transcript.
+            </p>
+          </div>
           <form action={formAction} className="form-grid">
             {state?.error ? <div className="banner error">{state.error}</div> : null}
             {state?.success ? <div className="banner success">{state.success}</div> : null}
@@ -992,16 +1003,18 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
 
             <input type="hidden" name="level" value={analysis.level} />
             <input type="hidden" name="notes" value={analysis.notes} />
-            <input type="hidden" name="comprehensionPct" value="0" />
 
             <SubmitButton>Save Reading Assessment</SubmitButton>
           </form>
         </div>
 
-        <div className="panel">
-          <div className="nav-strip" style={{ marginBottom: 16 }}>
+        <div className="panel reading-results-panel">
+          <div className="nav-strip reading-results-head">
             <div>
-              <h3 style={{ marginBottom: 8 }}>Results</h3>
+              <h3 style={{ marginBottom: 8 }}>Oral Reading Result</h3>
+              <p className="lead" style={{ margin: 0 }}>
+                Review the live reading output, core metrics, and suggested next steps.
+              </p>
             </div>
             <div className="reading-live-timer">
               <strong>{formatTimer(Number(readingSeconds || 0))}</strong>
@@ -1009,13 +1022,27 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
             </div>
           </div>
 
-          <div className="reading-passage">{passage.text || 'Enter a custom passage to begin.'}</div>
-
-          <div className="reading-transcript-box" style={{ marginTop: 16 }}>
-            {displayedTranscript || 'Speech will appear here while the learner is reading.'}
+          <div className="reading-section-block">
+            <div className="reading-section-head">
+              <strong>Selected Passage</strong>
+              <span className="subtle">{passage.title}</span>
+            </div>
+            <div className="reading-passage">{passage.text || 'Enter a custom passage to begin.'}</div>
           </div>
 
-          <div className="four-col" style={{ marginTop: 16 }}>
+          <div className="reading-section-block">
+            <div className="reading-section-head">
+              <strong>Voice Transcript</strong>
+              <span className="subtle">
+                {displayedTranscript ? 'Live speech capture and pasted text appear here.' : 'Waiting for the learner reading sample.'}
+              </span>
+            </div>
+            <div className="reading-transcript-box">
+              {displayedTranscript || 'Speech will appear here while the learner is reading.'}
+            </div>
+          </div>
+
+          <div className="reading-score-grid">
             <div className="metric-card">
               <h3>WR%</h3>
               <strong>{analysis.wordRecognition.toFixed(1)}%</strong>
@@ -1038,7 +1065,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
             </div>
           </div>
 
-          <div className="computation-box" style={{ marginTop: 16 }}>
+          <div className="computation-box">
             <div className="comp-title">Computation</div>
             <div className="comp-line"><span>Total Words</span><span>{analysis.totalWords}</span></div>
             <div className="comp-line"><span>% Miscues</span><span>{analysis.percentMiscues.toFixed(2)}%</span></div>
@@ -1136,7 +1163,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
         </div>
       </div>
 
-      <div className="two-col" style={{ marginTop: 20 }}>
+      <div className="reading-detail-grid">
         <div className="panel">
           <h3>Major Miscues</h3>
           {analysis.majorMiscues.length === 0 ? (
@@ -1198,8 +1225,8 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
         </div>
       </div>
 
-      <div className="panel" style={{ marginTop: 20 }}>
-        <h3>Assessment History</h3>
+      <div className="panel reading-history-panel">
+        <h3>Saved Reading Results</h3>
         {assessments.length === 0 ? (
           <div className="subtle">No reading assessments saved yet.</div>
         ) : (
@@ -1210,7 +1237,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
                   <th>Student</th>
                   <th>Date</th>
                   <th>Level</th>
-                  <th>Comprehension</th>
                   <th>Pronunciation</th>
                   <th>Notes</th>
                 </tr>
@@ -1221,7 +1247,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
                     <td>{assessment.last_name}, {assessment.first_name}</td>
                     <td>{formatDateValue(assessment.assessed_date)}</td>
                     <td>{assessment.level}</td>
-                    <td>{assessment.comprehension_pct}%</td>
                     <td>{assessment.pronunciation}</td>
                     <td className="subtle">{assessment.notes || '-'}</td>
                   </tr>

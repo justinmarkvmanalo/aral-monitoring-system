@@ -56,7 +56,7 @@ export default async function HomePage() {
                 <div className="landing-portal-top">
                   <span className="landing-portal-tag">Teacher</span>
                   <h2>Handle class records</h2>
-                  <p className="lead">Open attendance, reading, numeracy, science, and intervention tools for one section.</p>
+                  <p className="lead">Open attendance, reading, and IRIP tools for one section.</p>
                 </div>
                 <div className="landing-portal-list">
                   <span>Section setup</span>

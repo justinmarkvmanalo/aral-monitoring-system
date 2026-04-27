@@ -840,8 +840,61 @@ textarea {
   min-width: 0;
 }
 
+.reading-shell {
+  display: grid;
+  gap: 20px;
+}
+
+.reading-shell .panel {
+  box-shadow: none;
+  background: #fbfcfb;
+}
+
+.reading-page-header {
+  display: grid;
+  gap: 8px;
+}
+
 .reading-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.92fr) minmax(420px, 1.08fr);
+  gap: 20px;
   align-items: start;
+}
+
+.reading-form-panel,
+.reading-results-panel,
+.reading-history-panel {
+  display: grid;
+  gap: 0;
+}
+
+.reading-panel-copy {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.reading-results-head {
+  margin-bottom: 18px;
+}
+
+.reading-section-block {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.reading-section-block:first-of-type {
+  margin-top: 0;
+}
+
+.reading-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .reading-passage {
@@ -903,6 +956,42 @@ textarea {
   word-break: break-word;
 }
 
+.reading-score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.computation-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f5f8f6;
+}
+
+.comp-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.comp-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+.comp-line span:last-child {
+  font-weight: 700;
+}
+
 .reading-feedback-stack {
   display: grid;
   gap: 12px;
@@ -912,6 +1001,17 @@ textarea {
 
 .reading-feedback-panel {
   box-shadow: none;
+}
+
+.reading-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.reading-history-panel {
+  margin-top: 20px;
 }
 
 .reading-ai-week-grid {
@@ -1453,6 +1553,16 @@ textarea {
 
   .reading-ai-week-grid {
     grid-template-columns: 1fr;
+  }
+
+  .reading-grid,
+  .reading-detail-grid,
+  .reading-score-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reading-section-head {
+    align-items: flex-start;
   }
 
   .support-chart-row {
