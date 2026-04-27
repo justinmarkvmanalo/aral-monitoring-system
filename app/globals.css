@@ -914,6 +914,67 @@ textarea {
   box-shadow: none;
 }
 
+.reading-ai-week-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reading-ai-week-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f7faf8;
+}
+
+.support-chart {
+  display: grid;
+  gap: 12px;
+}
+
+.support-chart-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 14px;
+}
+
+.support-chart-label {
+  display: grid;
+  gap: 4px;
+}
+
+.support-chart-track {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #edf1ee;
+}
+
+.support-chart-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.support-chart-bar.green {
+  background: linear-gradient(90deg, #2ca97f, #4ac59a);
+}
+
+.support-chart-bar.amber {
+  background: linear-gradient(90deg, #d39a27, #f0bc55);
+}
+
+.support-chart-bar.red {
+  background: linear-gradient(90deg, #c85151, #e67d7d);
+}
+
+.support-chart-value {
+  text-align: right;
+  font-weight: 700;
+}
+
 .irip-shell {
   padding: 20px;
 }
@@ -1388,6 +1449,18 @@ textarea {
 
   .landing-title {
     max-width: none;
+  }
+
+  .reading-ai-week-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-chart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .support-chart-value {
+    text-align: left;
   }
 
   .irip-learner-card {

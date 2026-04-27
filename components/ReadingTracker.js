@@ -562,7 +562,7 @@ function levelClassName(level) {
   return 'red';
 }
 
-export default function ReadingTracker({ students, assessments, action }) {
+export default function ReadingTracker({ students, assessments, iripRecords = [], action }) {
   const [state, formAction] = useActionState(action, {});
   const [selectedPassageId, setSelectedPassageId] = useState(PASSAGES[0].id);
   const [customPassage, setCustomPassage] = useState('');
@@ -575,6 +575,9 @@ export default function ReadingTracker({ students, assessments, action }) {
   const [isRecording, setIsRecording] = useState(false);
   const [speechStatus, setSpeechStatus] = useState('Mic is ready.');
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiSuggestionsStatus, setAiSuggestionsStatus] = useState('idle');
+  const [aiSuggestionsError, setAiSuggestionsError] = useState('');
 
   const recognitionRef = useRef(null);
   const timerIntervalRef = useRef(null);
@@ -594,6 +597,22 @@ export default function ReadingTracker({ students, assessments, action }) {
   }, [customPassage, selectedPassageId]);
 
   const totalWords = useMemo(() => tokenizeForAnalysis(passage.text).length, [passage.text]);
+  const studentLookup = useMemo(() => {
+    const lookup = new Map();
+    students.forEach((student) => {
+      lookup.set(String(student.id), student);
+    });
+    return lookup;
+  }, [students]);
+  const selectedStudent = studentLookup.get(String(studentId)) || null;
+  const iripRecordLookup = useMemo(() => {
+    const lookup = new Map();
+    iripRecords.forEach((record) => {
+      lookup.set(String(record.student_id), record);
+    });
+    return lookup;
+  }, [iripRecords]);
+  const selectedIripRecord = iripRecordLookup.get(String(studentId)) || null;
 
   const analysis = useMemo(
     () =>
@@ -608,6 +627,12 @@ export default function ReadingTracker({ students, assessments, action }) {
       }),
     [gradeLevel, passage.text, passage.title, period, readingSeconds, transcript]
   );
+
+  useEffect(() => {
+    setAiSuggestions(null);
+    setAiSuggestionsStatus('idle');
+    setAiSuggestionsError('');
+  }, [studentId, transcript, readingSeconds, selectedPassageId, customPassage, gradeLevel, period]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -767,6 +792,65 @@ export default function ReadingTracker({ students, assessments, action }) {
     setTranscript('');
     setLiveTranscript('');
     setSpeechStatus('Voice session cleared.');
+  }
+
+  async function generateAiSuggestions() {
+    if (!selectedStudent) {
+      setAiSuggestionsError('Select a student first.');
+      setAiSuggestionsStatus('error');
+      return;
+    }
+
+    if (!analysis.ready || !transcript.trim()) {
+      setAiSuggestionsError('Record or paste a voice transcript first.');
+      setAiSuggestionsStatus('error');
+      return;
+    }
+
+    setAiSuggestionsStatus('loading');
+    setAiSuggestionsError('');
+
+    try {
+      const response = await fetch('/api/teacher/reading-interventions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentName: `${selectedStudent.last_name}, ${selectedStudent.first_name}`,
+          gradeLevel,
+          period,
+          passageTitle: passage.title,
+          transcript,
+          readingSeconds: analysis.readingSeconds,
+          wordRecognition: Number(analysis.wordRecognition.toFixed(2)),
+          wrLevel: analysis.wrLevel,
+          wpm: analysis.wpm,
+          wpmLevel: analysis.wpmLevel,
+          level: analysis.level,
+          pronunciation: analysis.pronunciation,
+          majorMiscueCount: analysis.majorMiscueCount,
+          majorMiscues: analysis.majorMiscues.slice(0, 6),
+          iripRows: Array.isArray(selectedIripRecord?.rows)
+            ? selectedIripRecord.rows.filter((row) => row?.status || String(row?.notes || '').trim())
+            : [],
+          fluencyObservations: analysis.fluencyObservations,
+          teacherRecommendations: analysis.teacherRecommendations
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to generate AI intervention suggestions.');
+      }
+
+      setAiSuggestions(payload);
+      setAiSuggestionsStatus('ready');
+    } catch (error) {
+      setAiSuggestions(null);
+      setAiSuggestionsError(error.message || 'Unable to generate AI intervention suggestions.');
+      setAiSuggestionsStatus('error');
+    }
   }
 
   const displayedTranscript = [transcript, liveTranscript].filter(Boolean).join(' ');
@@ -971,6 +1055,82 @@ export default function ReadingTracker({ students, assessments, action }) {
                   ? analysis.fluencyObservations
                   : 'Record reading to see the result.'}
               </p>
+            </div>
+            <div className="panel reading-feedback-panel">
+              <h3>Teacher Recommendations</h3>
+              <p className="subtle" style={{ margin: 0 }}>
+                {analysis.ready
+                  ? analysis.teacherRecommendations
+                  : 'Voice analysis will generate immediate teacher recommendations here.'}
+              </p>
+            </div>
+            <div className="panel reading-feedback-panel">
+              <div className="nav-strip" style={{ marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ marginBottom: 8 }}>AI Intervention Suggestions</h3>
+                  <p className="lead" style={{ margin: 0 }}>
+                    Groq generates a weekly support plan from the voice reading result.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={generateAiSuggestions}
+                  disabled={!analysis.ready || aiSuggestionsStatus === 'loading'}
+                >
+                  {aiSuggestionsStatus === 'loading' ? 'Generating...' : 'Generate AI Suggestions'}
+                </button>
+              </div>
+
+              {aiSuggestionsStatus === 'error' ? (
+                <div className="banner error" style={{ marginBottom: 0 }}>{aiSuggestionsError}</div>
+              ) : aiSuggestionsStatus === 'loading' ? (
+                <div className="subtle">Preparing intervention suggestions from the reading result...</div>
+              ) : aiSuggestions ? (
+                <div className="page-grid" style={{ gap: 14 }}>
+                  <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                    <div>
+                      <strong>{aiSuggestions.headline}</strong>
+                      <p className="lead" style={{ marginTop: 8, marginBottom: 0 }}>{aiSuggestions.summary}</p>
+                    </div>
+                    <span className={`pill ${aiSuggestions.riskLevel === 'High' ? 'red' : aiSuggestions.riskLevel === 'Moderate' ? 'amber' : 'green'}`}>
+                      {aiSuggestions.riskLevel}
+                    </span>
+                  </div>
+
+                  <div>
+                    <strong>Immediate Actions</strong>
+                    <div className="page-grid" style={{ gap: 8, marginTop: 8 }}>
+                      {aiSuggestions.immediateActions.map((item) => (
+                        <div key={item} className="subtle">{item}</div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <strong>Weekly Plan</strong>
+                    <div className="reading-ai-week-grid" style={{ marginTop: 10 }}>
+                      {aiSuggestions.weeklyPlan.map((item) => (
+                        <div key={`${item.week}-${item.focus}`} className="reading-ai-week-card">
+                          <span className="irip-week-badge">{item.week}</span>
+                          <strong>{item.focus}</strong>
+                          <div className="subtle">{item.teacherAction}</div>
+                          <div className="subtle">Success marker: {item.successMarker}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {aiSuggestions.iripConnection ? (
+                    <div>
+                      <strong>IRIP Connection</strong>
+                      <div className="subtle" style={{ marginTop: 8 }}>{aiSuggestions.iripConnection}</div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="subtle">Generate suggestions after the learner finishes the voice reading.</div>
+              )}
             </div>
           </div>
         </div>

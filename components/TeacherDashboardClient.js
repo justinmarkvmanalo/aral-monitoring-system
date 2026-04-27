@@ -40,6 +40,33 @@ export default function TeacherDashboardClient({
     ? Math.round((data.stats.presentToday / data.stats.totalStudents) * 100)
     : 0;
   const currentAttendanceWeek = attendanceWeeks[selectedAttendanceWeek] || attendanceWeeks[0] || null;
+  const supportGraphItems = [
+    {
+      label: 'Attendance Follow-up',
+      value: data.stats.absentToday + data.stats.lateToday,
+      detail: 'Absent or late today',
+      tone: 'amber'
+    },
+    {
+      label: 'Reading Support',
+      value: readingNeedsSupport,
+      detail: 'Below Independent level',
+      tone: 'red'
+    },
+    {
+      label: 'Science Review',
+      value: scienceNeedsReview,
+      detail: 'Below pass threshold',
+      tone: 'amber'
+    },
+    {
+      label: 'Open Interventions',
+      value: openInterventions,
+      detail: 'Still requiring follow-up',
+      tone: 'green'
+    }
+  ];
+  const supportGraphMax = Math.max(data.stats.totalStudents || 0, ...supportGraphItems.map((item) => item.value), 1);
 
   const renderContent = () => {
     switch (activeItem) {
@@ -71,6 +98,33 @@ export default function TeacherDashboardClient({
                 <h3>Late Today</h3>
                 <strong>{data.stats.lateToday}</strong>
                 <span>Current session</span>
+              </div>
+            </section>
+
+            <section className="panel">
+              <div className="nav-strip" style={{ marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ marginBottom: 8 }}>Learner Support Graph</h2>
+                  <p className="lead" style={{ margin: 0 }}>A quick view of how many learners currently need follow-up across the main support areas.</p>
+                </div>
+                <div className="subtle">Scale: out of {data.stats.totalStudents || 0} learners</div>
+              </div>
+              <div className="support-chart">
+                {supportGraphItems.map((item) => {
+                  const widthPct = item.value > 0 ? Math.max(8, Math.round((item.value / supportGraphMax) * 100)) : 0;
+                  return (
+                    <div key={item.label} className="support-chart-row">
+                      <div className="support-chart-label">
+                        <strong>{item.label}</strong>
+                        <span className="subtle">{item.detail}</span>
+                      </div>
+                      <div className="support-chart-track" aria-hidden="true">
+                        <div className={`support-chart-bar ${item.tone}`} style={{ width: `${widthPct}%` }} />
+                      </div>
+                      <div className="support-chart-value">{item.value}</div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
@@ -177,6 +231,7 @@ export default function TeacherDashboardClient({
           <ReadingTracker
             students={data.students}
             assessments={data.reading.assessments}
+            iripRecords={data.irip.records}
             action={actions.saveReadingAssessment}
           />
         );
