@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TopNav, Sidebar } from '@/components/Navigation';
 import {
   AddAnnouncementForm,
@@ -15,16 +15,61 @@ export default function AdminDashboardClient({
   actions 
 }) {
   const [activeItem, setActiveItem] = useState('overview');
+  const [aiInsights, setAiInsights] = useState(null);
+  const [aiInsightsStatus, setAiInsightsStatus] = useState('idle');
+  const [aiInsightsError, setAiInsightsError] = useState('');
   const schoolYearLabel =
     data.sections.find((section) => section.school_year_label)?.school_year_label || 'School Year Not Set';
-  const averageSectionCoverage = data.sections.length
-    ? Math.round(
-        data.sectionAttendance.reduce((total, section) => {
-          if (!section.total) return total;
-          return total + ((Number(section.present) + Number(section.late)) / Number(section.total)) * 100;
-        }, 0) / data.sections.length
-      )
-    : 0;
+  const workload = data.workloadAnalytics;
+
+  useEffect(() => {
+    if (activeItem !== 'reports' || aiInsightsStatus !== 'idle') {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadAiInsights() {
+      setAiInsightsStatus('loading');
+      setAiInsightsError('');
+
+      try {
+        const response = await fetch('/api/admin/workload-insights', { cache: 'no-store' });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to load AI workload insights.');
+        }
+
+        if (!cancelled) {
+          setAiInsights(payload);
+          setAiInsightsStatus('ready');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAiInsightsError(error.message || 'Unable to load AI workload insights.');
+          setAiInsightsStatus('error');
+        }
+      }
+    }
+
+    loadAiInsights();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeItem, aiInsightsStatus]);
+
+  function formatHours(value) {
+    const numericValue = Number(value || 0);
+    return Number.isInteger(numericValue) ? String(numericValue) : numericValue.toFixed(1);
+  }
+
+  function workloadPillClass(level) {
+    if (level === 'High') return 'pill red';
+    if (level === 'Moderate') return 'pill amber';
+    return 'pill green';
+  }
 
   const renderContent = () => {
     switch (activeItem) {
@@ -245,93 +290,174 @@ export default function AdminDashboardClient({
           <div className="page-grid">
             <div className="page-header">
               <h1>School Reports</h1>
-              <p>School-wide reporting is now integrated with live teacher, section, attendance, and intervention data.</p>
+              <p>School-wide reporting is now integrated with live teacher, section, attendance, intervention, and workload analytics.</p>
             </div>
 
             <section className="four-col">
               <div className="metric-card">
-                <h3>Teachers</h3>
-                <strong>{data.teachers.length}</strong>
-                <span>Registered teacher accounts</span>
+                <h3>Learners Tracked</h3>
+                <strong>{workload.totals.learners}</strong>
+                <span>Total learners assigned across teachers</span>
               </div>
               <div className="metric-card">
-                <h3>Sections</h3>
-                <strong>{data.sections.length}</strong>
-                <span>Classes currently tracked</span>
+                <h3>Intervention Hours</h3>
+                <strong>{formatHours(workload.totals.interventionHours)}</strong>
+                <span>Estimated from recorded intervention logs</span>
               </div>
               <div className="metric-card">
-                <h3>Coverage Today</h3>
-                <strong>{averageSectionCoverage}%</strong>
-                <span>Average present-or-late coverage by section</span>
+                <h3>Learners Needing Escalation</h3>
+                <strong>{workload.totals.escalationLearners}</strong>
+                <span>Attendance, reading, science, or high-priority cases</span>
               </div>
               <div className="metric-card">
-                <h3>Flagged Learners</h3>
-                <strong>{data.interventions.length}</strong>
-                <span>Students with 3 or more absences this month</span>
+                <h3>Overload Alerts</h3>
+                <strong>{workload.totals.overloadedTeachers}</strong>
+                <span>Teachers currently marked Moderate or High</span>
               </div>
             </section>
 
             <section className="two-col">
               <div className="panel">
-                <h2>Teacher Summary</h2>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Teacher</th>
-                        <th>Section</th>
-                        <th>Learners</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.teachers.length === 0 ? (
-                        <tr>
-                          <td colSpan={3} className="subtle">No teachers yet.</td>
-                        </tr>
+                <h2>AI Workload Brief</h2>
+                <p className="lead">{workload.estimationNote}</p>
+                {aiInsightsStatus === 'loading' ? (
+                  <div className="subtle">Generating AI workload summary...</div>
+                ) : aiInsightsStatus === 'error' ? (
+                  <div className="banner error" style={{ marginBottom: 0 }}>{aiInsightsError}</div>
+                ) : aiInsights ? (
+                  <div className="page-grid">
+                    <div>
+                      <strong>{aiInsights.headline}</strong>
+                      <p className="lead" style={{ marginTop: 8, marginBottom: 0 }}>{aiInsights.summary}</p>
+                    </div>
+                    <div>
+                      <strong>Alerts</strong>
+                      {aiInsights.alerts.length === 0 ? (
+                        <div className="subtle" style={{ marginTop: 8 }}>No AI alerts returned.</div>
                       ) : (
-                        data.teachers.map((teacher) => (
-                          <tr key={teacher.id}>
-                            <td>{teacher.full_name}</td>
-                            <td>{teacher.section_name || 'Unassigned'}</td>
-                            <td>{teacher.student_count}</td>
-                          </tr>
-                        ))
+                        <div className="page-grid" style={{ gap: 8, marginTop: 8 }}>
+                          {aiInsights.alerts.map((alert) => (
+                            <div key={alert} className="subtle">{alert}</div>
+                          ))}
+                        </div>
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                    <div>
+                      <strong>Recommendations</strong>
+                      {aiInsights.recommendations.length === 0 ? (
+                        <div className="subtle" style={{ marginTop: 8 }}>No AI recommendations returned.</div>
+                      ) : (
+                        <div className="page-grid" style={{ gap: 8, marginTop: 8 }}>
+                          {aiInsights.recommendations.map((recommendation) => (
+                            <div key={recommendation} className="subtle">{recommendation}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="subtle">Open this reports view to generate an AI staffing summary.</div>
+                )}
               </div>
 
               <div className="panel">
-                <h2>Section Attendance Snapshot</h2>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="table">
-                    <thead>
+                <h2>Teacher Overload Alerts</h2>
+                <p className="lead">Flags combine learner load, intervention hours, and escalation pressure.</p>
+                {workload.overloadAlerts.length === 0 ? (
+                  <div className="subtle">No overload alerts right now.</div>
+                ) : (
+                  <div className="page-grid">
+                    {workload.overloadAlerts.map((teacher) => (
+                      <div key={teacher.teacherId} className="table-card">
+                        <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                          <div>
+                            <strong>{teacher.teacherName}</strong>
+                            <div className="subtle">{teacher.sectionName}</div>
+                          </div>
+                          <span className={workloadPillClass(teacher.overloadLevel)}>{teacher.overloadLevel}</span>
+                        </div>
+                        <div className="subtle" style={{ marginTop: 10 }}>
+                          {teacher.overloadReasons.length > 0 ? teacher.overloadReasons.join(' | ') : 'Workload watch'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Teacher Workload Analytics</h2>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Teacher</th>
+                      <th>Section</th>
+                      <th>Learners</th>
+                      <th>Intervention Hours</th>
+                      <th>Escalation Learners</th>
+                      <th>Active Cases</th>
+                      <th>Alert</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workload.teacherLoads.length === 0 ? (
                       <tr>
-                        <th>Section</th>
-                        <th>Present</th>
-                        <th>Absent</th>
-                        <th>Late</th>
+                        <td colSpan={7} className="subtle">No teacher workload data yet.</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {data.sectionAttendance.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="subtle">No attendance posted yet.</td>
+                    ) : (
+                      workload.teacherLoads.map((teacher) => (
+                        <tr key={teacher.teacherId}>
+                          <td>{teacher.teacherName}</td>
+                          <td>{teacher.sectionName}</td>
+                          <td>{teacher.learnerCount}</td>
+                          <td>{formatHours(teacher.interventionHours)}</td>
+                          <td>{teacher.escalationLearnerCount}</td>
+                          <td>{teacher.activeCaseCount}</td>
+                          <td>
+                            <span className={workloadPillClass(teacher.overloadLevel)}>{teacher.overloadLevel}</span>
+                          </td>
                         </tr>
-                      ) : (
-                        data.sectionAttendance.map((section) => (
-                          <tr key={section.id}>
-                            <td>Grade {section.grade_level} | {section.section_name}</td>
-                            <td>{section.present}</td>
-                            <td>{section.absent}</td>
-                            <td>{section.late}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Escalation Watchlist</h2>
+              <p className="lead">Learners listed here are contributing to teacher escalation pressure.</p>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Learner</th>
+                      <th>Section</th>
+                      <th>Teacher</th>
+                      <th>Reasons</th>
+                      <th>Signal Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workload.escalationLearners.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="subtle">No escalation learners right now.</td>
+                      </tr>
+                    ) : (
+                      workload.escalationLearners.map((learner) => (
+                        <tr key={learner.id}>
+                          <td>{learner.last_name}, {learner.first_name}</td>
+                          <td>{learner.section_name}</td>
+                          <td>{learner.teacher_name}</td>
+                          <td>{learner.reasons.join(', ')}</td>
+                          <td>{learner.escalation_reason_count}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>

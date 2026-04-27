@@ -972,31 +972,9 @@ textarea {
   flex-wrap: wrap;
 }
 
-.irip-learner-week-groups {
-  display: grid;
-  gap: 16px;
-}
-
-.irip-learner-week-group {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: #fbfcfb;
-  overflow: hidden;
-}
-
-.irip-learner-week-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  background: #f5f8f5;
-}
-
 .irip-learner-list {
   display: grid;
   gap: 10px;
-  padding: 12px;
 }
 
 .irip-learner-card {
@@ -1064,12 +1042,52 @@ textarea {
   padding: 16px 20px 0;
 }
 
+.irip-week-groups {
+  display: grid;
+  gap: 16px;
+  padding: 16px 20px 0;
+}
+
+.irip-week-section {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fbfcfb;
+  overflow: hidden;
+}
+
+.irip-week-section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #f5f8f5;
+}
+
+.irip-week-table-wrap {
+  overflow-x: auto;
+}
+
 .irip-table {
   min-width: 1080px;
 }
 
 .irip-table th {
   background: #f5f7f5;
+}
+
+.irip-week-table {
+  min-width: 880px;
+}
+
+.irip-week-table th:first-child,
+.irip-week-table td:first-child {
+  padding-left: 16px;
+}
+
+.irip-week-table th:last-child,
+.irip-week-table td:last-child {
+  padding-right: 16px;
 }
 
 .irip-week-badge {
@@ -1375,6 +1393,10 @@ textarea {
   .irip-learner-card {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .irip-week-table {
+    min-width: 720px;
   }
 
   .irip-info-row {
