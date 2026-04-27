@@ -84,6 +84,27 @@ function formatStudentName(student) {
   return `${student.last_name}, ${student.first_name}`;
 }
 
+function getLearnerProgress(savedRows) {
+  if (!Array.isArray(savedRows)) {
+    return { savedCount: 0, latestWeek: 0 };
+  }
+
+  let savedCount = 0;
+  let latestWeek = 0;
+
+  for (const row of savedRows) {
+    const hasProgress = Boolean(row?.status || String(row?.notes || '').trim());
+    if (!hasProgress) {
+      continue;
+    }
+
+    savedCount += 1;
+    latestWeek = Math.max(latestWeek, Number(row?.week) || 0);
+  }
+
+  return { savedCount, latestWeek };
+}
+
 function DownloadIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -154,24 +175,36 @@ export default function IripChecklist({
 
   const completedRows = rows.filter((row) => row.status).length;
   const progressPct = rows.length ? Math.round((completedRows / rows.length) * 100) : 0;
-  const weekGroups = useMemo(() => {
-    const groups = [];
+  const learnerWeekGroups = useMemo(() => {
+    const groups = [
+      {
+        key: 'not-started',
+        label: 'Not Started',
+        week: 0,
+        learners: []
+      },
+      ...IRIP_SKILLS.map(({ week }) => ({
+        key: `week-${week}`,
+        label: `Week ${week}`,
+        week,
+        learners: []
+      }))
+    ];
+    const groupLookup = new Map(groups.map((group) => [group.key, group]));
 
-    rows.forEach((row, index) => {
-      const lastGroup = groups[groups.length - 1];
-      if (!lastGroup || lastGroup.week !== row.week) {
-        groups.push({
-          week: row.week,
-          items: [{ row, index }]
-        });
-        return;
-      }
+    for (const student of students) {
+      const savedRecord = recordLookup.get(String(student.id));
+      const progress = getLearnerProgress(savedRecord?.rows);
+      const groupKey = progress.latestWeek ? `week-${progress.latestWeek}` : 'not-started';
+      groupLookup.get(groupKey).learners.push({
+        student,
+        savedCount: progress.savedCount,
+        isSelected: String(student.id) === String(studentId)
+      });
+    }
 
-      lastGroup.items.push({ row, index });
-    });
-
-    return groups;
-  }, [rows]);
+    return groups.filter((group) => group.learners.length > 0);
+  }, [recordLookup, studentId, students]);
 
   function updateRow(index, key, value) {
     setRows((current) =>
@@ -228,43 +261,49 @@ export default function IripChecklist({
               <strong>Learners</strong>
               <span className="subtle">Select a learner to edit. Use the download button to export right away.</span>
             </div>
-            <div className="irip-learner-list">
+            <div className="irip-learner-week-groups">
               {students.length === 0 ? (
                 <div className="subtle">No learners yet.</div>
               ) : (
-                students.map((student) => {
-                  const isSelected = String(student.id) === String(studentId);
-                  const savedRecord = recordLookup.get(String(student.id));
-                  const savedCount = Array.isArray(savedRecord?.rows)
-                    ? savedRecord.rows.filter((row) => row?.status).length
-                    : 0;
-
-                  return (
-                    <div
-                      key={student.id}
-                      className={`irip-learner-card ${isSelected ? 'active' : ''}`}
-                    >
-                      <button
-                        type="button"
-                        className="irip-learner-main"
-                        onClick={() => setStudentId(String(student.id))}
-                      >
-                        <strong>{formatStudentName(student)}</strong>
-                        <span className="subtle">
-                          {savedCount > 0 ? `${savedCount}/${DEFAULT_ROWS.length} items saved` : 'No saved progress yet'}
-                        </span>
-                      </button>
-                      <a
-                        href={`/api/teacher/irip/${student.id}/docx`}
-                        className={`irip-download-button ${isSelected ? 'button' : 'button-secondary'}`}
-                        aria-label={`Download IRIP for ${formatStudentName(student)}`}
-                        title={`Download IRIP for ${formatStudentName(student)}`}
-                      >
-                        <DownloadIcon />
-                      </a>
+                learnerWeekGroups.map((group) => (
+                  <section key={group.key} className="irip-learner-week-group">
+                    <div className="irip-learner-week-head">
+                      <span className="irip-week-badge">{group.week || '-'}</span>
+                      <div>
+                        <strong>{group.label}</strong>
+                        <div className="subtle">{group.learners.length} learners</div>
+                      </div>
                     </div>
-                  );
-                })
+
+                    <div className="irip-learner-list">
+                      {group.learners.map(({ student, savedCount, isSelected }) => (
+                        <div
+                          key={student.id}
+                          className={`irip-learner-card ${isSelected ? 'active' : ''}`}
+                        >
+                          <button
+                            type="button"
+                            className="irip-learner-main"
+                            onClick={() => setStudentId(String(student.id))}
+                          >
+                            <strong>{formatStudentName(student)}</strong>
+                            <span className="subtle">
+                              {savedCount > 0 ? `${savedCount}/${DEFAULT_ROWS.length} items saved` : 'No saved progress yet'}
+                            </span>
+                          </button>
+                          <a
+                            href={`/api/teacher/irip/${student.id}/docx`}
+                            className={`irip-download-button ${isSelected ? 'button' : 'button-secondary'}`}
+                            aria-label={`Download IRIP for ${formatStudentName(student)}`}
+                            title={`Download IRIP for ${formatStudentName(student)}`}
+                          >
+                            <DownloadIcon />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))
               )}
             </div>
           </div>
@@ -299,58 +338,53 @@ export default function IripChecklist({
             <strong>{progressPct}%</strong>
           </div>
 
-          <div className="irip-week-groups">
-            {weekGroups.map((group) => (
-              <section key={group.week} className="irip-week-section">
-                <div className="irip-week-section-head">
-                  <span className="irip-week-badge">{group.week}</span>
-                  <div>
-                    <strong>{`Week ${group.week}`}</strong>
-                    <div className="subtle">{group.items.length} subskills</div>
-                  </div>
-                </div>
+          <div className="irip-table-wrap">
+            <table className="table irip-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 78 }}>Week</th>
+                  <th>Reading Subskill</th>
+                  <th style={{ width: 180 }}>Status</th>
+                  <th style={{ width: '32%' }}>Tutor Notes / Observations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => {
+                  const showWeek =
+                    index === 0 || rows[index - 1].week !== row.week;
 
-                <div className="irip-week-table-wrap">
-                  <table className="table irip-table irip-week-table">
-                    <thead>
-                      <tr>
-                        <th>Reading Subskill</th>
-                        <th style={{ width: 180 }}>Status</th>
-                        <th style={{ width: '32%' }}>Tutor Notes / Observations</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.items.map(({ row, index }) => (
-                        <tr key={`${row.week}-${row.skill}`}>
-                          <td className="irip-skill">{row.skill}</td>
-                          <td>
-                            <select
-                              value={row.status}
-                              onChange={(event) => updateRow(index, 'status', event.target.value)}
-                              className={`irip-status irip-status-${row.status || 'empty'}`}
-                            >
-                              <option value="">Select</option>
-                              <option value="observed">Observed</option>
-                              <option value="partial">Partially Observed</option>
-                              <option value="not">Not Observed</option>
-                            </select>
-                          </td>
-                          <td>
-                            <textarea
-                              value={row.notes}
-                              onChange={(event) => updateRow(index, 'notes', event.target.value)}
-                              className="irip-notes"
-                              rows={1}
-                              placeholder="Add notes..."
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ))}
+                  return (
+                    <tr key={`${row.week}-${row.skill}`}>
+                      <td>
+                        {showWeek ? <span className="irip-week-badge">{row.week}</span> : null}
+                      </td>
+                      <td className="irip-skill">{row.skill}</td>
+                      <td>
+                        <select
+                          value={row.status}
+                          onChange={(event) => updateRow(index, 'status', event.target.value)}
+                          className={`irip-status irip-status-${row.status || 'empty'}`}
+                        >
+                          <option value="">Select</option>
+                          <option value="observed">Observed</option>
+                          <option value="partial">Partially Observed</option>
+                          <option value="not">Not Observed</option>
+                        </select>
+                      </td>
+                      <td>
+                        <textarea
+                          value={row.notes}
+                          onChange={(event) => updateRow(index, 'notes', event.target.value)}
+                          className="irip-notes"
+                          rows={1}
+                          placeholder="Add notes..."
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           <div className="irip-legend">
