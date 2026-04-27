@@ -153,6 +153,10 @@ export default function IripChecklist({
     window.print();
   }
 
+  const downloadHref = selectedStudent
+    ? `/api/teacher/irip/${selectedStudent.id}/docx`
+    : '';
+
   return (
     <section className="table-card irip-shell">
       <div className="nav-strip">
@@ -163,6 +167,18 @@ export default function IripChecklist({
           </p>
         </div>
         <div className="inline-actions no-print">
+          <a
+            href={downloadHref || undefined}
+            className={`button ${selectedStudent ? '' : 'button-disabled'}`}
+            aria-disabled={!selectedStudent}
+            onClick={(event) => {
+              if (!selectedStudent) {
+                event.preventDefault();
+              }
+            }}
+          >
+            Download DOCX
+          </a>
           <button type="button" className="button-secondary" onClick={handlePrint}>
             Print
           </button>
