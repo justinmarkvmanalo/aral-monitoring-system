@@ -346,13 +346,20 @@ export async function saveIripChecklistAction(session, _, formData) {
     return { error: 'IRIP checklist rows are required.' };
   }
 
-  await saveIripChecklist({
-    studentId,
-    gradeLevel,
-    tutorName,
-    rows,
-    teacherId: session.userId
-  });
+  try {
+    await saveIripChecklist({
+      studentId,
+      gradeLevel,
+      tutorName,
+      rows,
+      teacherId: session.userId
+    });
+  } catch (error) {
+    if (error?.code === 'IRIP_TABLE_MISSING') {
+      return { error: error.message };
+    }
+    throw error;
+  }
 
   revalidatePath('/teacher/dashboard');
   revalidatePath('/admin/dashboard');
