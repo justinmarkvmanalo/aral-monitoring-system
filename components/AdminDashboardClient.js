@@ -164,6 +164,34 @@ export default function AdminDashboardClient({
             <section className="panel">
               <div className="nav-strip" style={{ marginBottom: 16 }}>
                 <div>
+                  <h2 style={{ marginBottom: 8 }}>Quick Actions</h2>
+                  <p className="lead" style={{ margin: 0 }}>
+                    Open the most common admin tasks directly from the dashboard.
+                  </p>
+                </div>
+              </div>
+              <div className="quick-action-grid">
+                <button type="button" className="quick-action-card" onClick={() => setActiveItem('announcements')}>
+                  <span className="quick-action-icon">AN</span>
+                  <strong>Announcements</strong>
+                  <span className="subtle">{data.announcements.length} posted updates</span>
+                </button>
+                <button type="button" className="quick-action-card" onClick={() => setActiveItem('teachers')}>
+                  <span className="quick-action-icon">TC</span>
+                  <strong>Teachers</strong>
+                  <span className="subtle">{data.teachers.length} registered accounts</span>
+                </button>
+                <button type="button" className="quick-action-card" onClick={() => setActiveItem('reports')}>
+                  <span className="quick-action-icon">RP</span>
+                  <strong>Reports</strong>
+                  <span className="subtle">Open school workload analytics</span>
+                </button>
+              </div>
+            </section>
+
+            <section className="panel">
+              <div className="nav-strip" style={{ marginBottom: 16 }}>
+                <div>
                   <h2 style={{ marginBottom: 8 }}>School Numerical Graph</h2>
                   <p className="lead" style={{ margin: 0 }}>
                     Exact school counts and today&apos;s attendance marks in one quick graph.
@@ -569,7 +597,8 @@ export default function AdminDashboardClient({
           counts={{ 
             teachers: data.teachers.length,
             sections: data.sections.length,
-            interventions: data.interventions.length 
+            interventions: data.interventions.length,
+            announcements: data.announcements.length
           }} 
         />
         <main className="content">

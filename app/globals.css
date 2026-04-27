@@ -1081,6 +1081,43 @@ textarea {
   gap: 14px;
 }
 
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.quick-action-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fbf8;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-1px);
+  border-color: #9ccbb7;
+  background: #f2f8f4;
+}
+
+.quick-action-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e1f5ee;
+  color: #0f6e56;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .numeric-graph-card {
   display: grid;
   gap: 10px;

@@ -86,7 +86,7 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
     },
     {
       section: 'Communication',
-      items: [{ id: 'announcements', label: 'Announcements', icon: 'AN' }]
+      items: [{ id: 'announcements', label: 'Announcements', icon: 'AN', count: counts.announcements }]
     },
     {
       section: 'Reports',
