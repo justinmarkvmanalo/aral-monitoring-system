@@ -21,6 +21,53 @@ export default function AdminDashboardClient({
   const schoolYearLabel =
     data.sections.find((section) => section.school_year_label)?.school_year_label || 'School Year Not Set';
   const workload = data.workloadAnalytics;
+  const attendanceMarked =
+    data.attendanceSummary.P + data.attendanceSummary.A + data.attendanceSummary.L;
+  const overviewGraphItems = [
+    {
+      label: 'Teachers',
+      value: data.teachers.length,
+      detail: 'Registered accounts',
+      tone: 'blue'
+    },
+    {
+      label: 'Sections',
+      value: data.sections.length,
+      detail: 'Active class sections',
+      tone: 'blue'
+    },
+    {
+      label: 'Learners',
+      value: data.totalStudents,
+      detail: 'School-wide active learners',
+      tone: 'green'
+    },
+    {
+      label: 'Present',
+      value: data.attendanceSummary.P,
+      detail: 'Marked present today',
+      tone: 'green'
+    },
+    {
+      label: 'Absent',
+      value: data.attendanceSummary.A,
+      detail: 'Marked absent today',
+      tone: 'red'
+    },
+    {
+      label: 'Late',
+      value: data.attendanceSummary.L,
+      detail: 'Marked late today',
+      tone: 'amber'
+    },
+    {
+      label: 'Unmarked',
+      value: data.unmarkedToday,
+      detail: 'Still waiting for status',
+      tone: 'amber'
+    }
+  ];
+  const overviewGraphMax = Math.max(1, ...overviewGraphItems.map((item) => item.value));
 
   useEffect(() => {
     if (activeItem !== 'reports' || aiInsightsStatus !== 'idle') {
@@ -77,8 +124,15 @@ export default function AdminDashboardClient({
         return (
           <div className="page-grid">
             <div className="page-header">
-              <h1>Admin Dashboard</h1>
-              <p>Welcome, {session.name}</p>
+              <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <h1>Admin Dashboard</h1>
+                  <p>Welcome, {session.name}</p>
+                </div>
+                <button type="button" className="button-secondary" onClick={() => setActiveItem('announcements')}>
+                  Open Announcements
+                </button>
+              </div>
             </div>
 
             <section className="four-col">
@@ -107,6 +161,35 @@ export default function AdminDashboardClient({
               </div>
             </section>
 
+            <section className="panel">
+              <div className="nav-strip" style={{ marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ marginBottom: 8 }}>School Numerical Graph</h2>
+                  <p className="lead" style={{ margin: 0 }}>
+                    Exact school counts and today&apos;s attendance marks in one quick graph.
+                  </p>
+                </div>
+                <div className="subtle">{attendanceMarked} attendance records marked today</div>
+              </div>
+              <div className="numeric-graph-grid">
+                {overviewGraphItems.map((item) => {
+                  const widthPct = item.value > 0 ? Math.max(10, Math.round((item.value / overviewGraphMax) * 100)) : 0;
+                  return (
+                    <div key={item.label} className="numeric-graph-card">
+                      <div className="numeric-graph-head">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                      <div className="numeric-graph-track" aria-hidden="true">
+                        <div className={`numeric-graph-fill ${item.tone}`} style={{ width: `${widthPct}%` }} />
+                      </div>
+                      <div className="subtle">{item.detail}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             <section className="two-col">
               <div className="panel">
                 <h2>Add Teacher</h2>
@@ -115,8 +198,15 @@ export default function AdminDashboardClient({
               </div>
 
               <div className="panel">
-                <h2>Post Announcement</h2>
-                <p className="lead">Announcements appear on the teacher dashboard.</p>
+                <div className="nav-strip" style={{ marginBottom: 16 }}>
+                  <div>
+                    <h2 style={{ marginBottom: 8 }}>Post Announcement</h2>
+                    <p className="lead" style={{ margin: 0 }}>Announcements appear on the teacher dashboard.</p>
+                  </div>
+                  <button type="button" className="button-secondary" onClick={() => setActiveItem('announcements')}>
+                    Manage
+                  </button>
+                </div>
                 <AddAnnouncementForm action={actions.addAnnouncement} />
               </div>
             </section>

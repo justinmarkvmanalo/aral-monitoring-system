@@ -1075,6 +1075,67 @@ textarea {
   font-weight: 700;
 }
 
+.numeric-graph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.numeric-graph-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fbf8;
+}
+
+.numeric-graph-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.numeric-graph-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.numeric-graph-head strong {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.numeric-graph-track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e7ece8;
+}
+
+.numeric-graph-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.numeric-graph-fill.blue {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.numeric-graph-fill.green {
+  background: linear-gradient(90deg, #2ca97f, #4ac59a);
+}
+
+.numeric-graph-fill.amber {
+  background: linear-gradient(90deg, #d39a27, #f0bc55);
+}
+
+.numeric-graph-fill.red {
+  background: linear-gradient(90deg, #c85151, #e67d7d);
+}
+
 .irip-shell {
   padding: 20px;
 }

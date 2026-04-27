@@ -2,16 +2,8 @@ import { saveSectionAction } from '@/app/actions';
 import SectionForm from '@/components/SectionForm';
 import { TopNav, Sidebar } from '@/components/Navigation';
 import { requireRole } from '@/lib/auth';
+import { getDefaultSchoolYear } from '@/lib/date';
 import { getTeacherSection } from '@/lib/data';
-
-function getDefaultSchoolYear() {
-  const currentYear = new Date().getFullYear();
-  return {
-    label: `${currentYear}-${currentYear + 1}`,
-    startDate: `${currentYear}-06-02`,
-    endDate: `${currentYear + 1}-04-03`
-  };
-}
 
 export default async function TeacherSetupPage() {
   const session = await requireRole('teacher');

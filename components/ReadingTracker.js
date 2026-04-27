@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 
+import { getCurrentDateValue } from '@/lib/date';
 import SubmitButton from '@/components/SubmitButton';
 
 const PASSAGES = [
@@ -943,7 +944,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
               </div>
               <div className="field">
                 <label>Assessed Date</label>
-                <input type="date" name="assessedDate" defaultValue={new Date().toISOString().slice(0, 10)} />
+                <input type="date" name="assessedDate" defaultValue={getCurrentDateValue()} />
               </div>
             </div>
 

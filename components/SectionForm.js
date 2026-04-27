@@ -2,11 +2,13 @@
 
 import { useActionState } from 'react';
 
+import { getDefaultSchoolYear } from '@/lib/date';
 import SubmitButton from '@/components/SubmitButton';
 
 export default function SectionForm({ action, initialValues }) {
   const [state, formAction] = useActionState(action, {});
-  const labelPlaceholder = initialValues.label || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+  const schoolYearDefaults = getDefaultSchoolYear();
+  const labelPlaceholder = initialValues.label || schoolYearDefaults.label;
 
   return (
     <form action={formAction} className="form-grid">
