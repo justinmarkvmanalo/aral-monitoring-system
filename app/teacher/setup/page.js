@@ -25,8 +25,8 @@ export default async function TeacherSetupPage() {
               action={action}
               initialValues={{
                 label: section?.school_year_label || '2026-2027',
-                startDate: '2025-06-02',
-                endDate: '2026-04-03',
+                startDate: section?.school_year_start_date || '2025-06-02',
+                endDate: section?.school_year_end_date || '2026-04-03',
                 gradeLevel: section?.grade_level || '',
                 sectionName: section?.section_name || ''
               }}

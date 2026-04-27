@@ -19,6 +19,12 @@ export default function TeacherDashboardClient({
   attendanceLookup 
 }) {
   const [activeItem, setActiveItem] = useState('dashboard');
+  const attendanceWeeks = data.attendanceWeeks || [];
+  const defaultAttendanceWeek = Math.min(
+    data.currentAttendanceWeekIndex || 0,
+    Math.max(attendanceWeeks.length - 1, 0)
+  );
+  const [selectedAttendanceWeek, setSelectedAttendanceWeek] = useState(defaultAttendanceWeek);
   const openInterventions = data.interventions.records.filter(
     (record) => record.status === 'Open' || record.status === 'In Progress'
   ).length;
@@ -33,6 +39,7 @@ export default function TeacherDashboardClient({
   const attendanceRate = data.stats.totalStudents
     ? Math.round((data.stats.presentToday / data.stats.totalStudents) * 100)
     : 0;
+  const currentAttendanceWeek = attendanceWeeks[selectedAttendanceWeek] || attendanceWeeks[0] || null;
 
   const renderContent = () => {
     switch (activeItem) {
@@ -101,10 +108,31 @@ export default function TeacherDashboardClient({
       case 'attendance':
         return (
           <section className="table-card">
-            <h2>Weekly Attendance</h2>
-            <p className="lead">Use the controls in each date column to set attendance.</p>
+            <h2>10-Week Attendance</h2>
+            <p className="lead">Switch between the scheduled weeks and use the controls in each date column to set attendance.</p>
+            {currentAttendanceWeek ? (
+              <div className="actions" style={{ alignItems: 'end', marginTop: 20, marginBottom: 20 }}>
+                <div className="field" style={{ minWidth: 240, maxWidth: 320 }}>
+                  <label htmlFor="attendance-week">Attendance Week</label>
+                  <select
+                    id="attendance-week"
+                    value={selectedAttendanceWeek}
+                    onChange={(event) => setSelectedAttendanceWeek(Number(event.target.value))}
+                  >
+                    {attendanceWeeks.map((week) => (
+                      <option key={week.index} value={week.index}>
+                        {week.label} | {week.rangeLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="subtle">{currentAttendanceWeek.rangeLabel}</div>
+              </div>
+            ) : null}
             {data.students.length === 0 ? (
               <div className="subtle">No students yet.</div>
+            ) : !currentAttendanceWeek ? (
+              <div className="subtle">No attendance weeks available yet.</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="table">
@@ -112,7 +140,7 @@ export default function TeacherDashboardClient({
                     <tr>
                       <th>Student</th>
                       <th>LRN</th>
-                      {data.weekDates.map((date) => (
+                      {currentAttendanceWeek.dates.map((date) => (
                         <th key={date}>{new Date(date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</th>
                       ))}
                     </tr>
@@ -125,7 +153,7 @@ export default function TeacherDashboardClient({
                           <div className="subtle">{student.gender || 'Unspecified'}</div>
                         </td>
                         <td>{student.lrn}</td>
-                        {data.weekDates.map((date) => (
+                        {currentAttendanceWeek.dates.map((date) => (
                           <td key={date}>
                             <AttendanceControls
                               action={actions.saveAttendance}
