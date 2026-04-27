@@ -958,6 +958,56 @@ textarea {
   padding: 18px 20px 0;
 }
 
+.irip-learner-directory {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 0;
+}
+
+.irip-learner-directory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.irip-learner-list {
+  display: grid;
+  gap: 10px;
+}
+
+.irip-learner-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fbf8;
+}
+
+.irip-learner-card.active {
+  border-color: #8ac5ad;
+  background: #eef8f2;
+}
+
+.irip-learner-main {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.irip-learner-main strong {
+  font-size: 0.95rem;
+}
+
 .irip-progress {
   display: flex;
   align-items: center;
@@ -1290,6 +1340,11 @@ textarea {
 
   .landing-title {
     max-width: none;
+  }
+
+  .irip-learner-card {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .irip-info-row {

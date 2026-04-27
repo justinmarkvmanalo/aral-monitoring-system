@@ -6,13 +6,14 @@ import SubmitButton from '@/components/SubmitButton';
 
 export default function SectionForm({ action, initialValues }) {
   const [state, formAction] = useActionState(action, {});
+  const labelPlaceholder = initialValues.label || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
 
   return (
     <form action={formAction} className="form-grid">
       {state?.error ? <div className="banner error">{state.error}</div> : null}
       <div className="field">
         <label>School Year Label</label>
-        <input name="label" defaultValue={initialValues.label} placeholder="2026-2027" />
+        <input name="label" defaultValue={initialValues.label} placeholder={labelPlaceholder} />
       </div>
       <div className="two-col">
         <div className="field">

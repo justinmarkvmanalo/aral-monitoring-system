@@ -4,10 +4,20 @@ import { TopNav, Sidebar } from '@/components/Navigation';
 import { requireRole } from '@/lib/auth';
 import { getTeacherSection } from '@/lib/data';
 
+function getDefaultSchoolYear() {
+  const currentYear = new Date().getFullYear();
+  return {
+    label: `${currentYear}-${currentYear + 1}`,
+    startDate: `${currentYear}-06-02`,
+    endDate: `${currentYear + 1}-04-03`
+  };
+}
+
 export default async function TeacherSetupPage() {
   const session = await requireRole('teacher');
   const section = await getTeacherSection(session.userId);
   const action = saveSectionAction.bind(null, session);
+  const defaultSchoolYear = getDefaultSchoolYear();
 
   return (
     <>
@@ -24,9 +34,9 @@ export default async function TeacherSetupPage() {
             <SectionForm
               action={action}
               initialValues={{
-                label: section?.school_year_label || '2026-2027',
-                startDate: section?.school_year_start_date || '2025-06-02',
-                endDate: section?.school_year_end_date || '2026-04-03',
+                label: section?.school_year_label || defaultSchoolYear.label,
+                startDate: section?.school_year_start_date || defaultSchoolYear.startDate,
+                endDate: section?.school_year_end_date || defaultSchoolYear.endDate,
                 gradeLevel: section?.grade_level || '',
                 sectionName: section?.section_name || ''
               }}

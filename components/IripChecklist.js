@@ -100,6 +100,7 @@ export default function IripChecklist({
     () => students.find((student) => String(student.id) === String(studentId)) || null,
     [studentId, students]
   );
+  const learnerName = selectedStudent ? formatStudentName(selectedStudent) : '';
 
   const gradeLabel = section?.grade_level ? `Grade ${section.grade_level}` : '';
 
@@ -153,10 +154,6 @@ export default function IripChecklist({
     window.print();
   }
 
-  const downloadHref = selectedStudent
-    ? `/api/teacher/irip/${selectedStudent.id}/docx`
-    : '';
-
   return (
     <section className="table-card irip-shell">
       <div className="nav-strip">
@@ -167,18 +164,6 @@ export default function IripChecklist({
           </p>
         </div>
         <div className="inline-actions no-print">
-          <a
-            href={downloadHref || undefined}
-            className={`button ${selectedStudent ? '' : 'button-disabled'}`}
-            aria-disabled={!selectedStudent}
-            onClick={(event) => {
-              if (!selectedStudent) {
-                event.preventDefault();
-              }
-            }}
-          >
-            Download DOCX
-          </a>
           <button type="button" className="button-secondary" onClick={handlePrint}>
             Print
           </button>
@@ -202,19 +187,57 @@ export default function IripChecklist({
           {state?.error ? <div className="banner error">{state.error}</div> : null}
           {state?.success ? <div className="banner success">{state.success}</div> : null}
 
+          <input type="hidden" name="studentId" value={studentId} />
           <input type="hidden" name="rows" value={JSON.stringify(rows)} />
+
+          <div className="irip-learner-directory no-print">
+            <div className="irip-learner-directory-head">
+              <strong>Learners</strong>
+              <span className="subtle">Select a learner to edit. Use DL to download right away.</span>
+            </div>
+            <div className="irip-learner-list">
+              {students.length === 0 ? (
+                <div className="subtle">No learners yet.</div>
+              ) : (
+                students.map((student) => {
+                  const isSelected = String(student.id) === String(studentId);
+                  const savedRecord = recordLookup.get(String(student.id));
+                  const savedCount = Array.isArray(savedRecord?.rows)
+                    ? savedRecord.rows.filter((row) => row?.status).length
+                    : 0;
+
+                  return (
+                    <div
+                      key={student.id}
+                      className={`irip-learner-card ${isSelected ? 'active' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className="irip-learner-main"
+                        onClick={() => setStudentId(String(student.id))}
+                      >
+                        <strong>{formatStudentName(student)}</strong>
+                        <span className="subtle">
+                          {savedCount > 0 ? `${savedCount}/${DEFAULT_ROWS.length} items saved` : 'No saved progress yet'}
+                        </span>
+                      </button>
+                      <a
+                        href={`/api/teacher/irip/${student.id}/docx`}
+                        className={isSelected ? 'button' : 'button-secondary'}
+                      >
+                        DL
+                      </a>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
 
           <div className="irip-info-row">
             <div className="field">
               <label>Learner</label>
-              <select name="studentId" value={studentId} onChange={(event) => setStudentId(event.target.value)}>
-                <option value="">Select learner</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {formatStudentName(student)}
-                  </option>
-                ))}
-              </select>
+              <input value={learnerName} readOnly placeholder="Choose a learner from the list above" />
             </div>
 
             <div className="field">
