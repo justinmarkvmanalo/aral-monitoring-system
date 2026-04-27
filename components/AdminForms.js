@@ -34,7 +34,7 @@ export function AddTeacherForm({ action }) {
   );
 }
 
-export function AddAnnouncementForm({ action }) {
+export function AddAnnouncementForm({ action, submitLabel = 'Send Announcement' }) {
   const [state, formAction] = useActionState(action, {});
 
   return (
@@ -49,7 +49,7 @@ export function AddAnnouncementForm({ action }) {
         <label>Message</label>
         <textarea name="message" />
       </div>
-      <SubmitButton>Post Announcement</SubmitButton>
+      <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );
 }

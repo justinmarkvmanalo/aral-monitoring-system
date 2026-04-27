@@ -380,27 +380,62 @@ export default function AdminDashboardClient({
 
       case 'announcements':
         return (
-          <section className="table-card">
-            <h2>Recent Announcements</h2>
-            <div className="page-grid">
-              {data.announcements.length === 0 ? (
-                <div className="subtle">No announcements yet.</div>
-              ) : (
-                data.announcements.map((announcement) => (
-                  <div key={announcement.id} className="panel">
-                    <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
-                      <div>
-                        <strong>{announcement.title}</strong>
-                        <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
-                        <div className="subtle">{new Date(announcement.created_at).toLocaleString('en-PH')}</div>
-                      </div>
-                      <DeleteAnnouncementForm action={actions.deleteAnnouncement} announcementId={announcement.id} />
-                    </div>
-                  </div>
-                ))
-              )}
+          <div className="page-grid">
+            <div className="page-header">
+              <h1>Announcements</h1>
+              <p>Send updates from the admin dashboard and they will appear on the teacher dashboard.</p>
             </div>
-          </section>
+
+            <section className="two-col">
+              <div className="panel">
+                <h2>Send Announcement</h2>
+                <p className="lead">Teachers will receive this on their dashboard and announcements screen.</p>
+                <AddAnnouncementForm action={actions.addAnnouncement} submitLabel="Send Announcement" />
+              </div>
+
+              <div className="panel">
+                <h2>Delivery Summary</h2>
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th>Total Teachers</th>
+                      <td>{data.teachers.length}</td>
+                    </tr>
+                    <tr>
+                      <th>Posted Announcements</th>
+                      <td>{data.announcements.length}</td>
+                    </tr>
+                    <tr>
+                      <th>Visibility</th>
+                      <td>Teacher dashboard and announcements page</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="table-card">
+              <h2>Recent Announcements</h2>
+              <div className="page-grid">
+                {data.announcements.length === 0 ? (
+                  <div className="subtle">No announcements yet.</div>
+                ) : (
+                  data.announcements.map((announcement) => (
+                    <div key={announcement.id} className="panel">
+                      <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                        <div>
+                          <strong>{announcement.title}</strong>
+                          <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
+                          <div className="subtle">{new Date(announcement.created_at).toLocaleString('en-PH')}</div>
+                        </div>
+                        <DeleteAnnouncementForm action={actions.deleteAnnouncement} announcementId={announcement.id} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
         );
 
       case 'reports':
