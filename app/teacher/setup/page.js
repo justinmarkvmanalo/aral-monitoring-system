@@ -1,4 +1,4 @@
-import { saveSectionAction } from '@/app/actions';
+import { saveSectionAction, teacherLogoutAction } from '@/app/actions';
 import SectionForm from '@/components/SectionForm';
 import { TopNav, Sidebar } from '@/components/Navigation';
 import { requireRole } from '@/lib/auth';
@@ -13,7 +13,7 @@ export default async function TeacherSetupPage() {
 
   return (
     <>
-      <TopNav user={session} role="teacher" />
+      <TopNav user={session} role="teacher" logoutAction={teacherLogoutAction} />
       <div className="main-wrap">
         <Sidebar role="teacher" activeItem="setup" />
         <main className="content">

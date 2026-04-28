@@ -8,7 +8,8 @@ import {
   saveReadingAssessmentAction,
   saveIripChecklistAction,
   saveScienceQuizAction,
-  saveInterventionAction
+  saveInterventionAction,
+  teacherLogoutAction
 } from '@/app/actions';
 import TeacherDashboardClient from '@/components/TeacherDashboardClient';
 import { requireRole } from '@/lib/auth';
@@ -31,7 +32,8 @@ export default async function TeacherDashboardPage() {
     saveReadingAssessment: saveReadingAssessmentAction.bind(null, session),
     saveIripChecklist: saveIripChecklistAction.bind(null, session),
     saveScienceQuiz: saveScienceQuizAction.bind(null, session),
-    saveIntervention: saveInterventionAction.bind(null, session)
+    saveIntervention: saveInterventionAction.bind(null, session),
+    logout: teacherLogoutAction
   };
 
   // Convert Map-like lookup to plain object for client component serialization

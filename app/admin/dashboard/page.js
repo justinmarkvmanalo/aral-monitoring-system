@@ -14,6 +14,7 @@ export default async function AdminDashboardPage() {
   const data = await getAdminDashboardData();
 
   const actions = {
+    logout: adminLogoutAction,
     addTeacher: addTeacherAction,
     addAnnouncement: addAnnouncementAction.bind(null, session),
     deleteTeacher: deleteTeacherAction,

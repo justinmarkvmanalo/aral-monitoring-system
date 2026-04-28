@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-export function TopNav({ user, role, schoolYearLabel }) {
+export function TopNav({ user, role, schoolYearLabel, logoutAction }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const syLabel = schoolYearLabel || 'School Year Not Set';
 
@@ -24,10 +24,18 @@ export function TopNav({ user, role, schoolYearLabel }) {
           {user?.initials || 'U'}
           {dropdownOpen && (
             <div className="dropdown">
-              <Link href="#">{user?.name}</Link>
-              <Link href={role === 'admin' ? '/admin/logout' : '/teacher/logout'} className="logout">
-                Log out
-              </Link>
+              <div className="dropdown-user">{user?.name}</div>
+              {logoutAction ? (
+                <form action={logoutAction} className="dropdown-form">
+                  <button type="submit" className="logout">
+                    Log out
+                  </button>
+                </form>
+              ) : (
+                <Link href={role === 'admin' ? '/admin/logout' : '/teacher/logout'} className="logout">
+                  Log out
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -42,7 +50,8 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
       section: 'Overview',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: 'DB' },
-        { id: 'attendance', label: 'Attendance', icon: 'AT', count: counts.students }
+        { id: 'students', label: 'Students', icon: 'LS', count: counts.students },
+        { id: 'attendance', label: 'Attendance', icon: 'AT' }
       ]
     },
     {

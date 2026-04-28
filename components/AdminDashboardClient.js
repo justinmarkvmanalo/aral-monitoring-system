@@ -623,7 +623,12 @@ export default function AdminDashboardClient({
 
   return (
     <>
-      <TopNav user={session} role="admin" schoolYearLabel={schoolYearLabel} />
+      <TopNav
+        user={session}
+        role="admin"
+        schoolYearLabel={schoolYearLabel}
+        logoutAction={actions.logout}
+      />
       <div className="main-wrap">
         <Sidebar 
           role="admin" 

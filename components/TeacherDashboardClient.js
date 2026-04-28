@@ -133,9 +133,28 @@ export default function TeacherDashboardClient({
 
             <section className="two-col">
               <div className="panel">
-                <h2>Add Student</h2>
-                <p className="lead">Register a learner directly into your assigned section.</p>
-                <AddStudentForm action={actions.addStudent} sectionId={data.section.id} />
+                <h2>Class Snapshot</h2>
+                <p className="lead">A quick summary of the active section you are handling today.</p>
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th>Section</th>
+                      <td>Grade {data.section.grade_level} | {data.section.section_name}</td>
+                    </tr>
+                    <tr>
+                      <th>School Year</th>
+                      <td>{data.section.school_year_label || 'Not set'}</td>
+                    </tr>
+                    <tr>
+                      <th>Total Learners</th>
+                      <td>{data.stats.totalStudents}</td>
+                    </tr>
+                    <tr>
+                      <th>Attendance Follow-up</th>
+                      <td>{attendanceFollowUp}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
               <div className="panel">
@@ -157,6 +176,54 @@ export default function TeacherDashboardClient({
                     ))
                   )}
                 </div>
+              </div>
+            </section>
+          </div>
+        );
+
+      case 'students':
+        return (
+          <div className="page-grid">
+            <div className="page-header">
+              <h1>Students</h1>
+              <p>Add learners to your section and review the current class list.</p>
+            </div>
+
+            <section className="two-col">
+              <div className="panel">
+                <h2>Add Student</h2>
+                <p className="lead">Register a learner directly into your assigned section.</p>
+                <AddStudentForm action={actions.addStudent} sectionId={data.section.id} />
+              </div>
+
+              <div className="panel">
+                <h2>Current Learners</h2>
+                {data.students.length === 0 ? (
+                  <div className="subtle">No students added yet.</div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>LRN</th>
+                          <th>Gender</th>
+                          <th>Birth Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.students.map((student) => (
+                          <tr key={student.id}>
+                            <td>{student.last_name}, {student.first_name}{student.middle_name ? ` ${student.middle_name}` : ''}</td>
+                            <td>{student.lrn}</td>
+                            <td>{student.gender || '-'}</td>
+                            <td>{student.birth_date ? new Date(student.birth_date).toLocaleDateString('en-PH') : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </section>
           </div>
@@ -372,7 +439,12 @@ export default function TeacherDashboardClient({
 
   return (
     <>
-      <TopNav user={session} role="teacher" schoolYearLabel={data.section.school_year_label} />
+      <TopNav
+        user={session}
+        role="teacher"
+        schoolYearLabel={data.section.school_year_label}
+        logoutAction={actions.logout}
+      />
       <div className="main-wrap">
         <Sidebar 
           role="teacher" 

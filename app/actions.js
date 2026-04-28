@@ -89,12 +89,12 @@ export async function teacherRegisterAction(_, formData) {
 
 export async function teacherLogoutAction() {
   await destroySession();
-  redirect('/');
+  redirect('/teacher/login');
 }
 
 export async function adminLogoutAction() {
   await destroySession();
-  redirect('/');
+  redirect('/admin/login');
 }
 
 export async function saveSectionAction(session, _, formData) {
