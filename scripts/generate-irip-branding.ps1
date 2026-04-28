@@ -36,7 +36,7 @@ $greenBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::From
 $linePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::Black), 3
 
 $headerSeal = [System.Drawing.Image]::FromFile((Join-Path $mediaDir '2.jpeg'))
-$headerGraphics.DrawImage($headerSeal, 822, 2, 40, 40)
+$headerGraphics.DrawImage($headerSeal, 820, 0, 44, 44)
 
 $oldEnglishSmall = New-Object System.Drawing.Font ('Old English Text MT', 22, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
 $oldEnglishLarge = New-Object System.Drawing.Font ('Old English Text MT', 31, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
