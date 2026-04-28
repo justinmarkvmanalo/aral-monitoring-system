@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TopNav, Sidebar } from '@/components/Navigation';
+import { TopNav, Sidebar, UiIcon } from '@/components/Navigation';
 import {
   AddAnnouncementForm,
   AddTeacherForm,
@@ -173,22 +173,30 @@ export default function AdminDashboardClient({
               </div>
               <div className="quick-action-grid">
                 <button type="button" className="quick-action-card" onClick={() => setActiveItem('announcements')}>
-                  <span className="quick-action-icon">AN</span>
+                  <span className="quick-action-icon">
+                    <UiIcon name="announcements" />
+                  </span>
                   <strong>Announcements</strong>
                   <span className="subtle">{data.announcements.length} posted updates</span>
                 </button>
                 <button type="button" className="quick-action-card" onClick={() => setActiveItem('teachers')}>
-                  <span className="quick-action-icon">TC</span>
+                  <span className="quick-action-icon">
+                    <UiIcon name="teachers" />
+                  </span>
                   <strong>Teachers</strong>
                   <span className="subtle">{data.teachers.length} registered accounts</span>
                 </button>
                 <button type="button" className="quick-action-card" onClick={() => setActiveItem('irip')}>
-                  <span className="quick-action-icon">IR</span>
+                  <span className="quick-action-icon">
+                    <UiIcon name="irip" />
+                  </span>
                   <strong>IRIP Inbox</strong>
                   <span className="subtle">{data.iripForwards.length} forwarded learner files</span>
                 </button>
                 <button type="button" className="quick-action-card" onClick={() => setActiveItem('reports')}>
-                  <span className="quick-action-icon">RP</span>
+                  <span className="quick-action-icon">
+                    <UiIcon name="reports" />
+                  </span>
                   <strong>Reports</strong>
                   <span className="subtle">Open school workload analytics</span>
                 </button>

@@ -554,6 +554,68 @@ function levelClassName(level) {
   return 'red';
 }
 
+function getLearnerInitials(firstName, lastName) {
+  return `${String(firstName || '').trim().charAt(0)}${String(lastName || '').trim().charAt(0)}`
+    .replace(/\s+/g, '')
+    .toUpperCase() || 'LR';
+}
+
+function getAssessmentTimestamp(assessment) {
+  const value = assessment?.assessed_date;
+  if (!value) return 0;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return Date.parse(`${value}T12:00:00Z`) || 0;
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function parseAssessmentNotes(notes) {
+  const details = {
+    passage: '',
+    period: '',
+    words: '',
+    readingSeconds: '',
+    majorMiscues: '',
+    wordRecognition: '',
+    wpm: '',
+    majorMiscueSamples: '',
+    transcript: ''
+  };
+
+  String(notes || '')
+    .split(' | ')
+    .forEach((part) => {
+      const separatorIndex = part.indexOf(': ');
+      if (separatorIndex === -1) {
+        return;
+      }
+
+      const key = part.slice(0, separatorIndex).trim();
+      const value = part.slice(separatorIndex + 2).trim();
+
+      if (key === 'Passage') details.passage = value;
+      if (key === 'Period') details.period = value;
+      if (key === 'Words') details.words = value;
+      if (key === 'Reading Seconds') details.readingSeconds = value;
+      if (key === 'Major Miscues') details.majorMiscues = value;
+      if (key === 'Word Recognition') details.wordRecognition = value;
+      if (key === 'WPM') details.wpm = value;
+      if (key === 'Major Miscue Samples') details.majorMiscueSamples = value;
+      if (key === 'Transcript') details.transcript = value;
+    });
+
+  return details;
+}
+
+function shortenText(value, maxLength = 220) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trim()}...`;
+}
+
 export default function ReadingTracker({ students, assessments, iripRecords = [], action }) {
   const [state, formAction] = useActionState(action, {});
   const [selectedPassageId, setSelectedPassageId] = useState(PASSAGES[0].id);
@@ -570,6 +632,8 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [aiSuggestionsStatus, setAiSuggestionsStatus] = useState('idle');
   const [aiSuggestionsError, setAiSuggestionsError] = useState('');
+  const [activeResultTab, setActiveResultTab] = useState('overview');
+  const [selectedHistoryStudentId, setSelectedHistoryStudentId] = useState('');
 
   const recognitionRef = useRef(null);
   const timerIntervalRef = useRef(null);
@@ -619,11 +683,64 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
     [gradeLevel, passage.text, passage.title, period, readingSeconds, transcript]
   );
 
+  const historyGroups = useMemo(() => {
+    const groups = new Map();
+
+    assessments.forEach((assessment) => {
+      const studentKey = String(assessment.student_id);
+      const currentGroup = groups.get(studentKey) || {
+        studentId: studentKey,
+        studentName: `${assessment.last_name}, ${assessment.first_name}`,
+        firstName: assessment.first_name,
+        lastName: assessment.last_name,
+        assessments: []
+      };
+
+      currentGroup.assessments.push(assessment);
+      groups.set(studentKey, currentGroup);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => {
+        const sortedAssessments = [...group.assessments].sort((left, right) => {
+          const timestampDelta = getAssessmentTimestamp(right) - getAssessmentTimestamp(left);
+          if (timestampDelta !== 0) return timestampDelta;
+          return Number(right.id || 0) - Number(left.id || 0);
+        });
+
+        return {
+          ...group,
+          assessments: sortedAssessments,
+          latestAssessment: sortedAssessments[0]
+        };
+      })
+      .sort((left, right) => {
+        const timestampDelta =
+          getAssessmentTimestamp(right.latestAssessment) - getAssessmentTimestamp(left.latestAssessment);
+        if (timestampDelta !== 0) return timestampDelta;
+        return left.studentName.localeCompare(right.studentName);
+      });
+  }, [assessments]);
+
+  const selectedHistoryGroup =
+    historyGroups.find((group) => group.studentId === String(selectedHistoryStudentId)) || historyGroups[0] || null;
+
   useEffect(() => {
     setAiSuggestions(null);
     setAiSuggestionsStatus('idle');
     setAiSuggestionsError('');
   }, [studentId, transcript, readingSeconds, selectedPassageId, customPassage, gradeLevel, period]);
+
+  useEffect(() => {
+    if (!historyGroups.length) {
+      setSelectedHistoryStudentId('');
+      return;
+    }
+
+    if (!historyGroups.some((group) => group.studentId === String(selectedHistoryStudentId))) {
+      setSelectedHistoryStudentId(historyGroups[0].studentId);
+    }
+  }, [historyGroups, selectedHistoryStudentId]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -845,6 +962,12 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
   }
 
   const displayedTranscript = [transcript, liveTranscript].filter(Boolean).join(' ');
+  const selectedStudentLabel = selectedStudent
+    ? `${selectedStudent.last_name}, ${selectedStudent.first_name}`
+    : 'Select a learner';
+  const selectedStudentMeta = selectedStudent
+    ? `Grade ${gradeLevel} · ${period} · ${passage.title}`
+    : 'Choose a student, then record or paste a reading sample to generate results.';
 
   return (
     <section className="table-card reading-shell">
@@ -852,7 +975,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
         <div>
           <h2>Reading Tracker</h2>
           <p className="lead" style={{ margin: 0 }}>
-            Capture oral reading, review miscues, and save a clean reading result from one screen.
+            Capture oral reading, review the result in one focused panel, and open saved learner records from cards.
           </p>
         </div>
       </div>
@@ -862,7 +985,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
           <div className="reading-panel-copy">
             <h3>Assessment Setup</h3>
             <p className="lead" style={{ margin: 0 }}>
-              Select the learner, prepare the passage, then use the mic or paste the transcript.
+              Select the learner, choose the passage, then use the mic or paste the transcript.
             </p>
           </div>
           <form action={formAction} className="form-grid">
@@ -1005,7 +1128,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
             <div>
               <h3 style={{ marginBottom: 8 }}>Oral Reading Result</h3>
               <p className="lead" style={{ margin: 0 }}>
-                Review the live reading output, core metrics, and suggested next steps.
+                Review the live result, switch panels only when needed, and keep the main score summary visible.
               </p>
             </div>
             <div className="reading-live-timer">
@@ -1014,237 +1137,380 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
             </div>
           </div>
 
-          <div className="reading-section-block">
-            <div className="reading-section-head">
-              <strong>Selected Passage</strong>
-              <span className="subtle">{passage.title}</span>
+          <div className="reading-student-hero">
+            <div className="reading-student-identity">
+              <span className="reading-student-avatar">
+                {selectedStudent
+                  ? getLearnerInitials(selectedStudent.first_name, selectedStudent.last_name)
+                  : 'AR'}
+              </span>
+              <div className="reading-student-copy">
+                <strong>{selectedStudentLabel}</strong>
+                <span className="subtle">{selectedStudentMeta}</span>
+              </div>
             </div>
-            <div className="reading-passage">{passage.text || 'Enter a custom passage to begin.'}</div>
+            <span className={`pill ${analysis.ready ? levelClassName(analysis.level) : 'amber'}`}>
+              {analysis.ready ? `${analysis.level} Level` : 'Awaiting Sample'}
+            </span>
           </div>
 
-          <div className="reading-section-block">
-            <div className="reading-section-head">
-              <strong>Voice Transcript</strong>
-              <span className="subtle">
-                {displayedTranscript ? 'Live speech capture and pasted text appear here.' : 'Waiting for the learner reading sample.'}
-              </span>
+          <div className="reading-focus-grid">
+            <div className="reading-section-block">
+              <div className="reading-section-head">
+                <strong>Selected Passage</strong>
+                <span className="subtle">{passage.title}</span>
+              </div>
+              <div className="reading-passage">{passage.text || 'Enter a custom passage to begin.'}</div>
             </div>
-            <div className="reading-transcript-box">
-              {displayedTranscript || 'Speech will appear here while the learner is reading.'}
+
+            <div className="reading-section-block">
+              <div className="reading-section-head">
+                <strong>Voice Transcript</strong>
+                <span className="subtle">
+                  {displayedTranscript
+                    ? 'Live speech capture and pasted text appear here.'
+                    : 'Waiting for the learner reading sample.'}
+                </span>
+              </div>
+              <div className="reading-transcript-box">
+                {displayedTranscript || 'Speech will appear here while the learner is reading.'}
+              </div>
             </div>
           </div>
 
           <div className="reading-score-grid">
-            <div className="metric-card">
+            <div className="metric-card reading-metric-card">
               <h3>WR%</h3>
               <strong>{analysis.wordRecognition.toFixed(1)}%</strong>
               <span>{analysis.wrLevel}</span>
             </div>
-            <div className="metric-card">
+            <div className="metric-card reading-metric-card">
               <h3>WPM</h3>
               <strong>{analysis.wpm || 0}</strong>
               <span>{analysis.wpmLevel}</span>
             </div>
-            <div className="metric-card">
+            <div className="metric-card reading-metric-card">
               <h3>Miscues</h3>
               <strong>{analysis.majorMiscueCount}</strong>
               <span>Major Only</span>
             </div>
-            <div className="metric-card">
+            <div className="metric-card reading-metric-card">
               <h3>Level</h3>
               <strong>{analysis.level}</strong>
               <span>{analysis.pronunciation}</span>
             </div>
           </div>
 
-          <div className="computation-box">
-            <div className="comp-title">Computation</div>
-            <div className="comp-line"><span>Total Words</span><span>{analysis.totalWords}</span></div>
-            <div className="comp-line"><span>% Miscues</span><span>{analysis.percentMiscues.toFixed(2)}%</span></div>
-            <div className="comp-line"><span>Word Recognition</span><span>{analysis.wordRecognition.toFixed(2)}%</span></div>
-            <div className="comp-line"><span>WPM</span><span>{analysis.wpm}</span></div>
-            <div className="comp-line"><span>Final Level</span><span>{analysis.level}</span></div>
+          <div className="reading-result-tabs" role="tablist" aria-label="Reading result panels">
+            <button
+              type="button"
+              className={`reading-result-tab ${activeResultTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveResultTab('overview')}
+            >
+              Summary
+            </button>
+            <button
+              type="button"
+              className={`reading-result-tab ${activeResultTab === 'miscues' ? 'active' : ''}`}
+              onClick={() => setActiveResultTab('miscues')}
+            >
+              Miscues
+            </button>
+            <button
+              type="button"
+              className={`reading-result-tab ${activeResultTab === 'ai' ? 'active' : ''}`}
+              onClick={() => setActiveResultTab('ai')}
+            >
+              AI Plan
+            </button>
           </div>
 
-          <div className="reading-feedback-stack">
-            <div className="panel reading-feedback-panel">
-              <h3>Fluency</h3>
-              <p className="subtle" style={{ margin: 0 }}>
-                {analysis.ready
-                  ? analysis.fluencyObservations
-                  : 'Record reading to see the result.'}
-              </p>
-            </div>
-            <div className="panel reading-feedback-panel">
-              <h3>Teacher Recommendations</h3>
-              <p className="subtle" style={{ margin: 0 }}>
-                {analysis.ready
-                  ? analysis.teacherRecommendations
-                  : 'Voice analysis will generate immediate teacher recommendations here.'}
-              </p>
-            </div>
-            <div className="panel reading-feedback-panel">
-              <div className="nav-strip" style={{ marginBottom: 12 }}>
-                <div>
-                  <h3 style={{ marginBottom: 8 }}>AI Intervention Suggestions</h3>
-                  <p className="lead" style={{ margin: 0 }}>
-                    Groq generates a weekly support plan from the voice reading result.
-                  </p>
+          <div className="reading-result-stage">
+            {activeResultTab === 'overview' ? (
+              <>
+                <div className="computation-box">
+                  <div className="comp-title">Computation</div>
+                  <div className="comp-line"><span>Total Words</span><span>{analysis.totalWords}</span></div>
+                  <div className="comp-line"><span>% Miscues</span><span>{analysis.percentMiscues.toFixed(2)}%</span></div>
+                  <div className="comp-line"><span>Word Recognition</span><span>{analysis.wordRecognition.toFixed(2)}%</span></div>
+                  <div className="comp-line"><span>WPM</span><span>{analysis.wpm}</span></div>
+                  <div className="comp-line"><span>Final Level</span><span>{analysis.level}</span></div>
                 </div>
-                <button
-                  type="button"
-                  className="button-secondary"
-                  onClick={generateAiSuggestions}
-                  disabled={!analysis.ready || aiSuggestionsStatus === 'loading'}
-                >
-                  {aiSuggestionsStatus === 'loading' ? 'Generating...' : 'Generate AI Suggestions'}
-                </button>
+
+                <div className="reading-insight-grid">
+                  <div className="panel reading-feedback-panel">
+                    <h3>Fluency Snapshot</h3>
+                    <p className="subtle" style={{ margin: 0 }}>
+                      {analysis.ready
+                        ? analysis.fluencyObservations
+                        : 'Record reading to unlock the live fluency summary.'}
+                    </p>
+                  </div>
+                  <div className="panel reading-feedback-panel">
+                    <h3>Teacher Next Step</h3>
+                    <p className="subtle" style={{ margin: 0 }}>
+                      {analysis.ready
+                        ? analysis.teacherRecommendations
+                        : 'Voice analysis will place the clearest teacher next step here.'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {activeResultTab === 'miscues' ? (
+              <div className="reading-detail-grid reading-detail-grid-inline">
+                <div className="panel reading-feedback-panel">
+                  <h3>Major Miscues</h3>
+                  {analysis.majorMiscues.length === 0 ? (
+                    <div className="subtle">No major miscues detected yet.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Expected</th>
+                            <th>Student Read</th>
+                            <th>Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysis.majorMiscues.map((miscue) => (
+                            <tr key={`${miscue.position}-${miscue.type}-${miscue.original}-${miscue.readAs}`}>
+                              <td>{miscue.position}</td>
+                              <td>{miscue.original || '-'}</td>
+                              <td>{miscue.readAs || 'Omitted'}</td>
+                              <td><span className={`pill ${levelClassName('Frustration')}`}>{miscue.type}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="panel reading-feedback-panel">
+                  <h3>Minor Miscues</h3>
+                  {analysis.minorMiscues.length === 0 ? (
+                    <div className="subtle">No minor miscues detected yet.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Word</th>
+                            <th>Observed</th>
+                            <th>Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysis.minorMiscues.map((miscue) => (
+                            <tr key={`${miscue.position}-${miscue.type}-${miscue.original}-${miscue.readAs}`}>
+                              <td>{miscue.position}</td>
+                              <td>{miscue.original || '-'}</td>
+                              <td>{miscue.readAs || '-'}</td>
+                              <td><span className={`pill ${levelClassName('Instructional')}`}>{miscue.type}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
+            ) : null}
 
-              {aiSuggestionsStatus === 'error' ? (
-                <div className="banner error" style={{ marginBottom: 0 }}>{aiSuggestionsError}</div>
-              ) : aiSuggestionsStatus === 'loading' ? (
-                <div className="subtle">Preparing intervention suggestions from the reading result...</div>
-              ) : aiSuggestions ? (
-                <div className="page-grid" style={{ gap: 14 }}>
-                  <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
-                    <div>
-                      <strong>{aiSuggestions.headline}</strong>
-                      <p className="lead" style={{ marginTop: 8, marginBottom: 0 }}>{aiSuggestions.summary}</p>
-                    </div>
-                    <span className={`pill ${aiSuggestions.riskLevel === 'High' ? 'red' : aiSuggestions.riskLevel === 'Moderate' ? 'amber' : 'green'}`}>
-                      {aiSuggestions.riskLevel}
-                    </span>
-                  </div>
-
+            {activeResultTab === 'ai' ? (
+              <div className="panel reading-feedback-panel">
+                <div className="nav-strip" style={{ marginBottom: 12 }}>
                   <div>
-                    <strong>Immediate Actions</strong>
-                    <div className="page-grid" style={{ gap: 8, marginTop: 8 }}>
-                      {aiSuggestions.immediateActions.map((item) => (
-                        <div key={item} className="subtle">{item}</div>
-                      ))}
-                    </div>
+                    <h3 style={{ marginBottom: 8 }}>AI Intervention Suggestions</h3>
+                    <p className="lead" style={{ margin: 0 }}>
+                      Generate a weekly support plan based on the live reading result and saved IRIP context.
+                    </p>
                   </div>
-
-                  <div>
-                    <strong>Weekly Plan</strong>
-                    <div className="reading-ai-week-grid" style={{ marginTop: 10 }}>
-                      {aiSuggestions.weeklyPlan.map((item) => (
-                        <div key={`${item.week}-${item.focus}`} className="reading-ai-week-card">
-                          <span className="irip-week-badge">{item.week}</span>
-                          <strong>{item.focus}</strong>
-                          <div className="subtle">{item.teacherAction}</div>
-                          <div className="subtle">Success marker: {item.successMarker}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {aiSuggestions.iripConnection ? (
-                    <div>
-                      <strong>IRIP Connection</strong>
-                      <div className="subtle" style={{ marginTop: 8 }}>{aiSuggestions.iripConnection}</div>
-                    </div>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    onClick={generateAiSuggestions}
+                    disabled={!analysis.ready || aiSuggestionsStatus === 'loading'}
+                  >
+                    {aiSuggestionsStatus === 'loading' ? 'Generating...' : 'Generate AI Suggestions'}
+                  </button>
                 </div>
-              ) : (
-                <div className="subtle">Generate suggestions after the learner finishes the voice reading.</div>
-              )}
-            </div>
+
+                {aiSuggestionsStatus === 'error' ? (
+                  <div className="banner error" style={{ marginBottom: 0 }}>{aiSuggestionsError}</div>
+                ) : aiSuggestionsStatus === 'loading' ? (
+                  <div className="subtle">Preparing intervention suggestions from the reading result...</div>
+                ) : aiSuggestions ? (
+                  <div className="page-grid" style={{ gap: 14 }}>
+                    <div className="inline-actions" style={{ justifyContent: 'space-between', alignItems: 'start' }}>
+                      <div>
+                        <strong>{aiSuggestions.headline}</strong>
+                        <p className="lead" style={{ marginTop: 8, marginBottom: 0 }}>{aiSuggestions.summary}</p>
+                      </div>
+                      <span className={`pill ${aiSuggestions.riskLevel === 'High' ? 'red' : aiSuggestions.riskLevel === 'Moderate' ? 'amber' : 'green'}`}>
+                        {aiSuggestions.riskLevel}
+                      </span>
+                    </div>
+
+                    <div>
+                      <strong>Immediate Actions</strong>
+                      <div className="page-grid" style={{ gap: 8, marginTop: 8 }}>
+                        {aiSuggestions.immediateActions.map((item) => (
+                          <div key={item} className="subtle">{item}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <strong>Weekly Plan</strong>
+                      <div className="reading-ai-week-grid" style={{ marginTop: 10 }}>
+                        {aiSuggestions.weeklyPlan.map((item) => (
+                          <div key={`${item.week}-${item.focus}`} className="reading-ai-week-card">
+                            <span className="irip-week-badge">{item.week}</span>
+                            <strong>{item.focus}</strong>
+                            <div className="subtle">{item.teacherAction}</div>
+                            <div className="subtle">Success marker: {item.successMarker}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {aiSuggestions.iripConnection ? (
+                      <div>
+                        <strong>IRIP Connection</strong>
+                        <div className="subtle" style={{ marginTop: 8 }}>{aiSuggestions.iripConnection}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="subtle">Generate suggestions after the learner finishes the voice reading.</div>
+                )}
+              </div>
+            ) : null}
           </div>
-        </div>
-      </div>
-
-      <div className="reading-detail-grid">
-        <div className="panel">
-          <h3>Major Miscues</h3>
-          {analysis.majorMiscues.length === 0 ? (
-            <div className="subtle">No major miscues detected yet.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Expected</th>
-                    <th>Student Read</th>
-                    <th>Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysis.majorMiscues.map((miscue) => (
-                    <tr key={`${miscue.position}-${miscue.type}-${miscue.original}-${miscue.readAs}`}>
-                      <td>{miscue.position}</td>
-                      <td>{miscue.original || '-'}</td>
-                      <td>{miscue.readAs || 'Omitted'}</td>
-                      <td><span className={`pill ${levelClassName('Frustration')}`}>{miscue.type}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="panel">
-          <h3>Minor Miscues</h3>
-          {analysis.minorMiscues.length === 0 ? (
-            <div className="subtle">No minor miscues detected yet.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Word</th>
-                    <th>Observed</th>
-                    <th>Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysis.minorMiscues.map((miscue) => (
-                    <tr key={`${miscue.position}-${miscue.type}-${miscue.original}-${miscue.readAs}`}>
-                      <td>{miscue.position}</td>
-                      <td>{miscue.original || '-'}</td>
-                      <td>{miscue.readAs || '-'}</td>
-                      <td><span className={`pill ${levelClassName('Instructional')}`}>{miscue.type}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
 
       <div className="panel reading-history-panel">
-        <h3>Saved Reading Results</h3>
-        {assessments.length === 0 ? (
+        <div className="nav-strip reading-history-head">
+          <div>
+            <h3 style={{ marginBottom: 8 }}>Saved Reading Results</h3>
+            <p className="lead" style={{ margin: 0 }}>
+              Open a learner card to review saved sessions without scanning a long table.
+            </p>
+          </div>
+          <span className="pill green">{historyGroups.length} Learners</span>
+        </div>
+
+        {historyGroups.length === 0 ? (
           <div className="subtle">No reading assessments saved yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Date</th>
-                  <th>Level</th>
-                  <th>Pronunciation</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assessments.map((assessment) => (
-                  <tr key={assessment.id}>
-                    <td>{assessment.last_name}, {assessment.first_name}</td>
-                    <td>{formatDateOnly(assessment.assessed_date)}</td>
-                    <td>{assessment.level}</td>
-                    <td>{assessment.pronunciation}</td>
-                    <td className="subtle">{assessment.notes || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="reading-history-layout">
+            <div className="reading-history-list">
+              {historyGroups.map((group) => (
+                <button
+                  key={group.studentId}
+                  type="button"
+                  className={`reading-history-card ${selectedHistoryGroup?.studentId === group.studentId ? 'active' : ''}`}
+                  onClick={() => setSelectedHistoryStudentId(group.studentId)}
+                >
+                  <div className="reading-history-card-head">
+                    <span className="reading-history-avatar">
+                      {getLearnerInitials(group.firstName, group.lastName)}
+                    </span>
+                    <div className="reading-history-card-copy">
+                      <strong>{group.studentName}</strong>
+                      <span className="subtle">
+                        Latest: {formatDateOnly(group.latestAssessment?.assessed_date)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="reading-history-card-meta">
+                    <span className={`pill ${levelClassName(group.latestAssessment?.level)}`}>
+                      {group.latestAssessment?.level || 'No Level'}
+                    </span>
+                    <span className="subtle">{group.assessments.length} saved result(s)</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="reading-history-detail">
+              <div className="reading-history-detail-head">
+                <div>
+                  <h3 style={{ marginBottom: 8 }}>{selectedHistoryGroup?.studentName}</h3>
+                  <p className="lead" style={{ margin: 0 }}>
+                    {selectedHistoryGroup ? `${selectedHistoryGroup.assessments.length} saved reading session(s)` : 'Select a learner card.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="reading-history-session-list">
+                {selectedHistoryGroup?.assessments.map((assessment) => {
+                  const noteDetails = parseAssessmentNotes(assessment.notes);
+
+                  return (
+                    <article key={assessment.id} className="reading-history-session-card">
+                      <div className="reading-history-session-top">
+                        <div>
+                          <strong>{formatDateOnly(assessment.assessed_date)}</strong>
+                          <div className="subtle">
+                            {[noteDetails.passage, noteDetails.period].filter(Boolean).join(' · ') || 'Saved reading session'}
+                          </div>
+                        </div>
+                        <div className="reading-history-session-badges">
+                          <span className={`pill ${levelClassName(assessment.level)}`}>{assessment.level}</span>
+                          <span className="pill amber">{assessment.pronunciation}</span>
+                        </div>
+                      </div>
+
+                      <div className="reading-history-stat-grid">
+                        <div className="reading-history-stat">
+                          <span className="subtle">Word Recognition</span>
+                          <strong>{noteDetails.wordRecognition || '-'}</strong>
+                        </div>
+                        <div className="reading-history-stat">
+                          <span className="subtle">WPM</span>
+                          <strong>{noteDetails.wpm || '-'}</strong>
+                        </div>
+                        <div className="reading-history-stat">
+                          <span className="subtle">Reading Seconds</span>
+                          <strong>{noteDetails.readingSeconds || '-'}</strong>
+                        </div>
+                        <div className="reading-history-stat">
+                          <span className="subtle">Major Miscues</span>
+                          <strong>{noteDetails.majorMiscues || '-'}</strong>
+                        </div>
+                      </div>
+
+                      {noteDetails.majorMiscueSamples ? (
+                        <div className="reading-history-note">
+                          <strong>Major Miscue Samples</strong>
+                          <div className="subtle">{noteDetails.majorMiscueSamples}</div>
+                        </div>
+                      ) : null}
+
+                      {noteDetails.transcript ? (
+                        <div className="reading-history-note transcript">
+                          <strong>Transcript Preview</strong>
+                          <div className="subtle">{shortenText(noteDetails.transcript, 320)}</div>
+                        </div>
+                      ) : assessment.notes ? (
+                        <div className="reading-history-note">
+                          <strong>Saved Note</strong>
+                          <div className="subtle">{shortenText(assessment.notes, 320)}</div>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
