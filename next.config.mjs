@@ -7,6 +7,7 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: '/favicon.ico', destination: '/icon.svg', permanent: true },
       { source: '/index.php', destination: '/', permanent: true },
       { source: '/register', destination: '/teacher/register', permanent: true },
       { source: '/teacher', destination: '/teacher/login', permanent: true },

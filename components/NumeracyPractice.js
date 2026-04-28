@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { formatDateOnly } from '@/lib/date';
 
 const SKILL_OPTIONS = [
   { value: 'addition', label: 'Addition', symbol: '+' },
@@ -647,7 +648,7 @@ export default function NumeracyPractice({
                         <td>{score.correct}/{score.total}</td>
                         <td>{score.percent}%</td>
                         <td><span className={mastery.className}>{score.masteryLabel || mastery.label}</span></td>
-                        <td>{new Date(score.scoredAt).toLocaleDateString('en-PH')}</td>
+                        <td>{formatDateOnly(score.scoredAt)}</td>
                       </tr>
                     );
                   })}

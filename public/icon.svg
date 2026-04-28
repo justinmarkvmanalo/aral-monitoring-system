@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title>ARAL Monitor</title>
+  <desc>Green and blue square icon with a white A monogram.</desc>
+  <defs>
+    <linearGradient id="bg" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d9e75" />
+      <stop offset="1" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)" />
+  <path
+    d="M17 49 28.5 15h7L47 49h-7.4l-2.2-7.1H26.7L24.4 49Zm11.5-13h7.1L32 24.7Z"
+    fill="#ffffff"
+  />
+  <circle cx="47" cy="17" r="5" fill="#d9f7eb" />
+</svg>

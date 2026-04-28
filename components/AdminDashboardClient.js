@@ -8,6 +8,7 @@ import {
   DeleteAnnouncementForm,
   DeleteTeacherForm
 } from '@/components/AdminForms';
+import { formatDateTime } from '@/lib/date';
 
 export default function AdminDashboardClient({ 
   session, 
@@ -454,7 +455,7 @@ export default function AdminDashboardClient({
                           </td>
                           <td>{record.teacher_name || 'Unknown teacher'}</td>
                           <td>{record.grade_level}</td>
-                          <td>{new Date(record.forwarded_at).toLocaleString('en-PH')}</td>
+                          <td>{formatDateTime(record.forwarded_at)}</td>
                           <td>
                             <div className="inline-actions">
                               <a
@@ -529,7 +530,7 @@ export default function AdminDashboardClient({
                         <div>
                           <strong>{announcement.title}</strong>
                           <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
-                          <div className="subtle">{new Date(announcement.created_at).toLocaleString('en-PH')}</div>
+                          <div className="subtle">{formatDateTime(announcement.created_at)}</div>
                         </div>
                         <DeleteAnnouncementForm action={actions.deleteAnnouncement} announcementId={announcement.id} />
                       </div>

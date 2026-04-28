@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 
 import SubmitButton from '@/components/SubmitButton';
+import { formatDateOnly } from '@/lib/date';
 
 const SCIENCE_QUIZZES = {
   'Living Things': [
@@ -57,15 +58,6 @@ const SCIENCE_QUIZZES = {
     }
   ]
 };
-
-function formatDateValue(value) {
-  if (!value) return '-';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-  return date.toLocaleDateString('en-PH');
-}
 
 export default function ScienceTracker({ sectionId, students, summary, scores, action }) {
   const [state, formAction] = useActionState(action, {});
@@ -214,7 +206,7 @@ export default function ScienceTracker({ sectionId, students, summary, scores, a
                 <tbody>
                   {summary.map((row) => (
                     <tr key={row.id}>
-                      <td>{formatDateValue(row.quiz_date)}</td>
+                      <td>{formatDateOnly(row.quiz_date)}</td>
                       <td>{row.topic_name}</td>
                       <td>{row.class_avg ?? 0}%</td>
                       <td>{row.passed}</td>
@@ -250,7 +242,7 @@ export default function ScienceTracker({ sectionId, students, summary, scores, a
                       <td>{row.topic_name}</td>
                       <td>{row.raw_score}/{row.total_items}</td>
                       <td>{row.pct_score}%</td>
-                      <td>{new Date(row.recorded_at).toLocaleDateString('en-PH')}</td>
+                      <td>{formatDateOnly(row.recorded_at)}</td>
                     </tr>
                   ))}
                 </tbody>

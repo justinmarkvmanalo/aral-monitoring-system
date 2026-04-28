@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 
 import SubmitButton from '@/components/SubmitButton';
+import { formatDateOnly } from '@/lib/date';
 
 function priorityFromFlag(flag) {
   if (flag.concern_area === 'Attendance' && Number(flag.metric) >= 5) return 'High';
@@ -125,7 +126,7 @@ export default function InterventionTracker({ students, flags, records, action }
                     <td>{record.priority}</td>
                     <td>{record.status}</td>
                     <td className="subtle">{record.notes}</td>
-                    <td>{new Date(record.created_at).toLocaleDateString('en-PH')}</td>
+                    <td>{formatDateOnly(record.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -6,6 +6,7 @@ import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
 import IripChecklist from '@/components/IripChecklist';
 import ReadingTracker from '@/components/ReadingTracker';
+import { formatDateOnly, formatDateTime, formatMonthDay } from '@/lib/date';
 
 export default function TeacherDashboardClient({ 
   session, 
@@ -169,7 +170,7 @@ export default function TeacherDashboardClient({
                         <strong>{announcement.title}</strong>
                         <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
                         <div className="subtle">
-                          {new Date(announcement.created_at).toLocaleString('en-PH')}
+                          {formatDateTime(announcement.created_at)}
                           {announcement.admin_name ? ` | ${announcement.admin_name}` : ''}
                         </div>
                       </div>
@@ -217,7 +218,7 @@ export default function TeacherDashboardClient({
                             <td>{student.last_name}, {student.first_name}{student.middle_name ? ` ${student.middle_name}` : ''}</td>
                             <td>{student.lrn}</td>
                             <td>{student.gender || '-'}</td>
-                            <td>{student.birth_date ? new Date(student.birth_date).toLocaleDateString('en-PH') : '-'}</td>
+                            <td>{student.birth_date ? formatDateOnly(student.birth_date) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -265,7 +266,7 @@ export default function TeacherDashboardClient({
                       <th>Student</th>
                       <th>LRN</th>
                       {currentAttendanceWeek.dates.map((date) => (
-                        <th key={date}>{new Date(date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</th>
+                        <th key={date}>{formatMonthDay(date)}</th>
                       ))}
                     </tr>
                   </thead>
@@ -401,7 +402,7 @@ export default function TeacherDashboardClient({
                         {latestReadingAssessments.slice(0, 8).map((assessment) => (
                           <tr key={assessment.id}>
                             <td>{assessment.last_name}, {assessment.first_name}</td>
-                            <td>{new Date(assessment.assessed_date).toLocaleDateString('en-PH')}</td>
+                            <td>{formatDateOnly(assessment.assessed_date)}</td>
                             <td>{assessment.level}</td>
                             <td>{assessment.pronunciation}</td>
                           </tr>
@@ -425,7 +426,7 @@ export default function TeacherDashboardClient({
                   <strong>{announcement.title}</strong>
                   <p className="lead" style={{ marginTop: 8, marginBottom: 8 }}>{announcement.message}</p>
                   <div className="subtle">
-                    {new Date(announcement.created_at).toLocaleString('en-PH')}
+                    {formatDateTime(announcement.created_at)}
                   </div>
                 </div>
               ))}

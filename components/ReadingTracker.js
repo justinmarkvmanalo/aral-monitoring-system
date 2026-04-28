@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 
-import { getCurrentDateValue } from '@/lib/date';
+import { formatDateOnly, getCurrentDateValue } from '@/lib/date';
 import SubmitButton from '@/components/SubmitButton';
 
 const PASSAGES = [
@@ -546,15 +546,6 @@ function formatTimer(seconds) {
   const minutes = Math.floor(total / 60);
   const remaining = total % 60;
   return `${minutes}:${remaining.toString().padStart(2, '0')}`;
-}
-
-function formatDateValue(value) {
-  if (!value) return '-';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-  return date.toLocaleDateString('en-PH');
 }
 
 function levelClassName(level) {
@@ -1246,7 +1237,7 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
                 {assessments.map((assessment) => (
                   <tr key={assessment.id}>
                     <td>{assessment.last_name}, {assessment.first_name}</td>
-                    <td>{formatDateValue(assessment.assessed_date)}</td>
+                    <td>{formatDateOnly(assessment.assessed_date)}</td>
                     <td>{assessment.level}</td>
                     <td>{assessment.pronunciation}</td>
                     <td className="subtle">{assessment.notes || '-'}</td>
