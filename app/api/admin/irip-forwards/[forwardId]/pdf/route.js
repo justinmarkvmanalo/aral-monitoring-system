@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
 import { requireRole } from '@/lib/auth';
+import { convertIripDocxToPdfBuffer } from '@/lib/irip-convert';
 import { getAdminIripForwardDocumentData } from '@/lib/data';
 import { getIripFilename } from '@/lib/irip-export';
-import { generateIripPdfBuffer } from '@/lib/irip-pdf';
 
 export async function GET(_, { params }) {
   await requireRole('admin');
@@ -18,7 +18,15 @@ export async function GET(_, { params }) {
     return NextResponse.json({ error: 'Forwarded IRIP not found.' }, { status: 404 });
   }
 
-  const buffer = await generateIripPdfBuffer(data);
+  let buffer;
+  try {
+    buffer = await convertIripDocxToPdfBuffer(data);
+  } catch (error) {
+    if (error?.code === 'DOCX_TO_PDF_UNAVAILABLE' || error?.code === 'DOCX_TO_PDF_FAILED') {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    throw error;
+  }
   const filename = getIripFilename(data.learnerName, 'pdf');
 
   return new NextResponse(buffer, {
