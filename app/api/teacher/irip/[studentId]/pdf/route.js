@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireRole } from '@/lib/auth';
 import { getTeacherIripDocumentData } from '@/lib/data';
 import { getIripFilename } from '@/lib/irip-export';
-import { generateIripDocxBuffer } from '@/lib/irip-template';
+import { generateIripPdfBuffer } from '@/lib/irip-pdf';
 
 export async function GET(_, { params }) {
   const session = await requireRole('teacher');
@@ -18,13 +18,13 @@ export async function GET(_, { params }) {
     return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
   }
 
-  const buffer = await generateIripDocxBuffer(data);
-  const filename = getIripFilename(data.learnerName, 'docx');
+  const buffer = await generateIripPdfBuffer(data);
+  const filename = getIripFilename(data.learnerName, 'pdf');
 
   return new NextResponse(buffer, {
     status: 200,
     headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Cache-Control': 'no-store'
     }

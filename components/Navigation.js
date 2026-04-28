@@ -90,7 +90,8 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
       section: 'Monitoring',
       items: [
         { id: 'attendance', label: 'Attendance', icon: 'AT' },
-        { id: 'interventions', label: 'Interventions', icon: 'IN', count: counts.interventions, alert: true }
+        { id: 'interventions', label: 'Interventions', icon: 'IN', count: counts.interventions, alert: true },
+        { id: 'irip', label: 'IRIP Inbox', icon: 'IR', count: counts.irip }
       ]
     },
     {

@@ -7,6 +7,7 @@ import {
   saveNumeracyScoresAction,
   saveReadingAssessmentAction,
   saveIripChecklistAction,
+  forwardIripToAdminAction,
   saveScienceQuizAction,
   saveInterventionAction,
   teacherLogoutAction
@@ -31,6 +32,7 @@ export default async function TeacherDashboardPage() {
     saveNumeracyScores: saveNumeracyScoresAction.bind(null, session),
     saveReadingAssessment: saveReadingAssessmentAction.bind(null, session),
     saveIripChecklist: saveIripChecklistAction.bind(null, session),
+    forwardIripToAdmin: forwardIripToAdminAction.bind(null, session),
     saveScienceQuiz: saveScienceQuizAction.bind(null, session),
     saveIntervention: saveInterventionAction.bind(null, session),
     logout: teacherLogoutAction

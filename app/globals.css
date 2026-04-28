@@ -1257,7 +1257,7 @@ textarea {
 .irip-learner-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--border);
@@ -1285,12 +1285,43 @@ textarea {
   font-size: 0.95rem;
 }
 
-.irip-download-button {
-  min-width: 44px;
+.irip-learner-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.irip-action-button {
   min-height: 44px;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
+  min-width: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.irip-action-button.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.irip-forward-form {
+  display: grid;
+  gap: 6px;
+}
+
+.irip-forward-form button {
+  width: 100%;
+}
+
+.irip-forward-status {
+  max-width: 220px;
+  text-align: right;
+  line-height: 1.4;
 }
 
 .irip-progress {
@@ -1692,6 +1723,15 @@ textarea {
   .irip-learner-card {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .irip-learner-actions {
+    justify-content: flex-start;
+  }
+
+  .irip-forward-status {
+    text-align: left;
+    max-width: none;
   }
 
   .irip-week-table {

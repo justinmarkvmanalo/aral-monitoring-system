@@ -99,12 +99,44 @@ function DownloadIcon() {
   );
 }
 
+function ForwardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path
+        d="M6 12h8m0 0-3.5-3.5M14 12l-3.5 3.5M18 6v12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IripForwardForm({ action, studentId, disabled }) {
+  const [state, formAction] = useActionState(action, {});
+
+  return (
+    <form action={formAction} className="irip-forward-form">
+      <input type="hidden" name="studentId" value={studentId} />
+      <SubmitButton className="button-secondary irip-action-button" disabled={disabled}>
+        <ForwardIcon />
+        <span>Forward</span>
+      </SubmitButton>
+      {state?.error ? <div className="subtle error-text irip-forward-status">{state.error}</div> : null}
+      {state?.success ? <div className="subtle success-text irip-forward-status">{state.success}</div> : null}
+    </form>
+  );
+}
+
 export default function IripChecklist({
   students,
   records,
   section,
   defaultTutorName,
-  action
+  action,
+  forwardAction
 }) {
   const [state, formAction] = useActionState(action, {});
   const [studentId, setStudentId] = useState('');
@@ -183,23 +215,14 @@ export default function IripChecklist({
     );
   }
 
-  function handlePrint() {
-    window.print();
-  }
-
   return (
     <section className="table-card irip-shell">
       <div className="nav-strip">
         <div>
           <h2 style={{ marginBottom: 8 }}>IRIP Checklist</h2>
           <p className="lead">
-            Individual Reading Intervention Plan checklist with weekly subskills, observation notes, and a print-ready landscape layout.
+            Individual Reading Intervention Plan checklist with weekly subskills, saved export files, and a direct forward-to-admin action.
           </p>
-        </div>
-        <div className="inline-actions no-print">
-          <button type="button" className="button-secondary" onClick={handlePrint}>
-            Print
-          </button>
         </div>
       </div>
 
@@ -216,58 +239,94 @@ export default function IripChecklist({
           <div className="irip-title">Individual Reading Intervention Plan (IRIP) Checklist</div>
         </div>
 
+        <div className="irip-learner-directory no-print">
+          <div className="irip-learner-directory-head">
+            <strong>Learners</strong>
+            <span className="subtle">Select a learner to edit. Saved checklists can be exported as DOCX or PDF, then forwarded to the admin inbox.</span>
+          </div>
+          <div className="irip-learner-list">
+            {students.length === 0 ? (
+              <div className="subtle">No learners yet.</div>
+            ) : (
+              students.map((student) => {
+                const isSelected = String(student.id) === String(studentId);
+                const savedRecord = recordLookup.get(String(student.id));
+                const savedCount = Array.isArray(savedRecord?.rows)
+                  ? savedRecord.rows.filter((row) => row?.status).length
+                  : 0;
+                const hasSavedChecklist = savedCount > 0 || (
+                  Array.isArray(savedRecord?.rows) &&
+                  savedRecord.rows.some((row) => row?.notes)
+                );
+
+                return (
+                  <div
+                    key={student.id}
+                    className={`irip-learner-card ${isSelected ? 'active' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="irip-learner-main"
+                      onClick={() => setStudentId(String(student.id))}
+                    >
+                      <strong>{formatStudentName(student)}</strong>
+                      <span className="subtle">
+                        {savedCount > 0 ? `${savedCount}/${DEFAULT_ROWS.length} items saved` : 'No saved progress yet'}
+                      </span>
+                    </button>
+
+                    <div className="irip-learner-actions">
+                      {hasSavedChecklist ? (
+                        <a
+                          href={`/api/teacher/irip/${student.id}/docx`}
+                          className={`irip-action-button ${isSelected ? 'button' : 'button-secondary'}`}
+                          aria-label={`Download IRIP DOCX for ${formatStudentName(student)}`}
+                          title={`Download IRIP DOCX for ${formatStudentName(student)}`}
+                        >
+                          <DownloadIcon />
+                          <span>DOCX</span>
+                        </a>
+                      ) : (
+                        <span className="button-secondary irip-action-button is-disabled">
+                          <DownloadIcon />
+                          <span>DOCX</span>
+                        </span>
+                      )}
+
+                      {hasSavedChecklist ? (
+                        <a
+                          href={`/api/teacher/irip/${student.id}/pdf`}
+                          className="button-secondary irip-action-button"
+                          aria-label={`Save IRIP PDF for ${formatStudentName(student)}`}
+                          title={`Save IRIP PDF for ${formatStudentName(student)}`}
+                        >
+                          <span>PDF</span>
+                        </a>
+                      ) : (
+                        <span className="button-secondary irip-action-button is-disabled">
+                          <span>PDF</span>
+                        </span>
+                      )}
+
+                      <IripForwardForm
+                        action={forwardAction}
+                        studentId={student.id}
+                        disabled={!hasSavedChecklist}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
         <form action={formAction} className="form-grid">
           {state?.error ? <div className="banner error">{state.error}</div> : null}
           {state?.success ? <div className="banner success">{state.success}</div> : null}
 
           <input type="hidden" name="studentId" value={studentId} />
           <input type="hidden" name="rows" value={JSON.stringify(rows)} />
-
-          <div className="irip-learner-directory no-print">
-            <div className="irip-learner-directory-head">
-              <strong>Learners</strong>
-              <span className="subtle">Select a learner to edit. Use the download button to export right away.</span>
-            </div>
-            <div className="irip-learner-list">
-              {students.length === 0 ? (
-                <div className="subtle">No learners yet.</div>
-              ) : (
-                students.map((student) => {
-                  const isSelected = String(student.id) === String(studentId);
-                  const savedRecord = recordLookup.get(String(student.id));
-                  const savedCount = Array.isArray(savedRecord?.rows)
-                    ? savedRecord.rows.filter((row) => row?.status).length
-                    : 0;
-
-                  return (
-                    <div
-                      key={student.id}
-                      className={`irip-learner-card ${isSelected ? 'active' : ''}`}
-                    >
-                      <button
-                        type="button"
-                        className="irip-learner-main"
-                        onClick={() => setStudentId(String(student.id))}
-                      >
-                        <strong>{formatStudentName(student)}</strong>
-                        <span className="subtle">
-                          {savedCount > 0 ? `${savedCount}/${DEFAULT_ROWS.length} items saved` : 'No saved progress yet'}
-                        </span>
-                      </button>
-                      <a
-                        href={`/api/teacher/irip/${student.id}/docx`}
-                        className={`irip-download-button ${isSelected ? 'button' : 'button-secondary'}`}
-                        aria-label={`Download IRIP for ${formatStudentName(student)}`}
-                        title={`Download IRIP for ${formatStudentName(student)}`}
-                      >
-                        <DownloadIcon />
-                      </a>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
 
           <div className="irip-info-row">
             <div className="field">

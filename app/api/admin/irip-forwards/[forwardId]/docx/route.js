@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
 
 import { requireRole } from '@/lib/auth';
-import { getTeacherIripDocumentData } from '@/lib/data';
+import { getAdminIripForwardDocumentData } from '@/lib/data';
 import { getIripFilename } from '@/lib/irip-export';
 import { generateIripDocxBuffer } from '@/lib/irip-template';
 
 export async function GET(_, { params }) {
-  const session = await requireRole('teacher');
-  const studentId = Number(params.studentId || 0);
+  await requireRole('admin');
+  const forwardId = Number(params.forwardId || 0);
 
-  if (!studentId) {
-    return NextResponse.json({ error: 'Invalid student.' }, { status: 400 });
+  if (!forwardId) {
+    return NextResponse.json({ error: 'Invalid IRIP forward.' }, { status: 400 });
   }
 
-  const data = await getTeacherIripDocumentData(session.userId, studentId);
+  const data = await getAdminIripForwardDocumentData(forwardId);
   if (!data) {
-    return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
+    return NextResponse.json({ error: 'Forwarded IRIP not found.' }, { status: 404 });
   }
 
   const buffer = await generateIripDocxBuffer(data);

@@ -19,7 +19,8 @@ import {
   saveNumeracyScores,
   saveScienceQuiz,
   saveIntervention,
-  saveAttendance
+  saveAttendance,
+  forwardIripToAdmin
 } from '@/lib/data';
 import { query } from '@/lib/db';
 
@@ -364,6 +365,30 @@ export async function saveIripChecklistAction(session, _, formData) {
   revalidatePath('/teacher/dashboard');
   revalidatePath('/admin/dashboard');
   return { success: 'IRIP checklist saved.' };
+}
+
+export async function forwardIripToAdminAction(session, _, formData) {
+  const studentId = Number(formData.get('studentId') || 0);
+
+  if (!studentId) {
+    return { error: 'Learner is required.' };
+  }
+
+  try {
+    await forwardIripToAdmin({
+      studentId,
+      teacherId: session.userId
+    });
+  } catch (error) {
+    if (error?.code === 'IRIP_FORWARD_EMPTY' || error?.code === 'IRIP_FORWARD_TABLE_MISSING') {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  revalidatePath('/teacher/dashboard');
+  revalidatePath('/admin/dashboard');
+  return { success: 'IRIP forwarded to the admin inbox.' };
 }
 
 export async function saveScienceQuizAction(session, _, formData) {

@@ -233,7 +233,7 @@ export default function TeacherDashboardClient({
         return (
           <section className="table-card">
             <h2>10-Week Attendance</h2>
-            <p className="lead">Switch between the scheduled weeks and use the controls in each date column to set attendance.</p>
+            <p className="lead">Switch between the scheduled weeks starting from today and use the controls in each date column to set attendance.</p>
             {currentAttendanceWeek ? (
               <div className="actions" style={{ alignItems: 'end', marginTop: 20, marginBottom: 20 }}>
                 <div className="field" style={{ minWidth: 240, maxWidth: 320 }}>
@@ -314,6 +314,7 @@ export default function TeacherDashboardClient({
             section={data.section}
             defaultTutorName={session.name}
             action={actions.saveIripChecklist}
+            forwardAction={actions.forwardIripToAdmin}
           />
         );
 
