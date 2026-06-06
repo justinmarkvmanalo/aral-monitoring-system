@@ -9,13 +9,13 @@ Use one of these database setups:
 ### Option A: full connection string
 
 ```env
-DATABASE_URL=postgresql://postgres:password@db.project-ref.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:your-db-password@db.ycjlfzolfesdtszlcrjv.supabase.co:5432/postgres?sslmode=require
 ```
 
 ### Option B: split database variables
 
 ```env
-SUPABASE_DB_HOST=db.project-ref.supabase.co
+SUPABASE_DB_HOST=db.ycjlfzolfesdtszlcrjv.supabase.co
 SUPABASE_DB_PORT=5432
 SUPABASE_DB_NAME=postgres
 SUPABASE_DB_USER=postgres
