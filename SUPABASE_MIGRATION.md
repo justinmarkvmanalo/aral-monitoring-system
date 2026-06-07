@@ -9,7 +9,7 @@ Use one of these database setups:
 ### Option A: full connection string
 
 ```env
-DATABASE_URL=postgresql://postgres:your-db-password@db.ycjlfzolfesdtszlcrjv.supabase.co:5432/postgres?sslmode=require
+DATABASE_URL=postgresql://postgres:your-db-password@db.ycjlfzolfesdtszlcrjv.supabase.co:5432/postgres
 ```
 
 ### Option B: split database variables
