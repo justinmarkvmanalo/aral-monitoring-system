@@ -15,7 +15,11 @@ function getDatabaseUrlHost() {
 }
 
 export async function GET() {
+  const usesSplitDatabaseConfig = Boolean(
+    process.env.SUPABASE_DB_HOST && process.env.SUPABASE_DB_USER && process.env.SUPABASE_DB_PASSWORD
+  );
   const env = {
+    selectedDatabaseConfig: usesSplitDatabaseConfig ? 'SUPABASE_DB_*' : 'DATABASE_URL',
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
     databaseUrlHost: getDatabaseUrlHost(),
     hasSupabaseDbHost: Boolean(process.env.SUPABASE_DB_HOST),
