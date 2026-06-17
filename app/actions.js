@@ -447,7 +447,7 @@ export async function saveInterventionAction(session, _, formData) {
   return { success: 'Intervention note saved.' };
 }
 
-export async function saveComprehensionAssessmentAction(session, _, formData) {
+export async function saveComprehensionAssessmentAction(session, formData) {
   const studentId = Number(formData.get('studentId') || 0);
   const assessedDate = asText(formData, 'assessedDate');
   const passageTitle = asText(formData, 'passageTitle') || 'General Comprehension';
