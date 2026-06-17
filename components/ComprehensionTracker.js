@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { formatDateOnly, getCurrentDateValue } from '@/lib/date';
 
+const QUESTION_PRESETS = [5, 6, 7, 8, 10, 15, 20];
+
 function getLevel(score) {
   if (score >= 80) return 'Independent';
   if (score >= 50) return 'Instructional';
@@ -17,10 +19,17 @@ export default function ComprehensionTracker({
   const [selectedStudent, setSelectedStudent] = useState('');
   const [assessedDate, setAssessedDate] = useState(getCurrentDateValue());
   const [passageTitle, setPassageTitle] = useState('');
-  const [score, setScore] = useState('');
+  const [totalQuestions, setTotalQuestions] = useState(5);
+  const [correctAnswers, setCorrectAnswers] = useState('');
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState(null);
   const [showHistory, setShowHistory] = useState(null);
+
+  const correctNum = Number(correctAnswers);
+  const score = totalQuestions > 0 && correctAnswers !== '' && correctNum >= 0
+    ? Math.round((correctNum / totalQuestions) * 100)
+    : null;
+  const level = score !== null ? getLevel(score) : null;
 
   const studentAssessments = showHistory
     ? assessments.filter((a) => a.student_id === showHistory).slice(0, 20)
@@ -30,14 +39,13 @@ export default function ComprehensionTracker({
     event.preventDefault();
     setMessage(null);
 
-    if (!selectedStudent || !assessedDate || score === '') {
-      setMessage({ type: 'error', text: 'Please select a student, date, and enter a score.' });
+    if (!selectedStudent || !assessedDate || correctAnswers === '') {
+      setMessage({ type: 'error', text: 'Please select a learner, date, and enter correct answers.' });
       return;
     }
 
-    const scoreNum = Number(score);
-    if (scoreNum < 0 || scoreNum > 100) {
-      setMessage({ type: 'error', text: 'Score must be between 0 and 100.' });
+    if (correctNum < 0 || correctNum > totalQuestions) {
+      setMessage({ type: 'error', text: `Correct answers must be between 0 and ${totalQuestions}.` });
       return;
     }
 
@@ -45,8 +53,9 @@ export default function ComprehensionTracker({
     formData.set('studentId', selectedStudent);
     formData.set('assessedDate', assessedDate);
     formData.set('passageTitle', passageTitle || 'General Comprehension');
-    formData.set('score', String(scoreNum));
-    formData.set('level', getLevel(scoreNum));
+    formData.set('totalQuestions', String(totalQuestions));
+    formData.set('correctAnswers', String(correctNum));
+    formData.set('level', level);
     formData.set('notes', notes);
 
     try {
@@ -54,8 +63,8 @@ export default function ComprehensionTracker({
       if (result?.error) {
         setMessage({ type: 'error', text: result.error });
       } else {
-        setMessage({ type: 'success', text: 'Comprehension assessment saved.' });
-        setScore('');
+        setMessage({ type: 'success', text: `Saved: ${correctNum}/${totalQuestions} (${score}%) - ${level}` });
+        setCorrectAnswers('');
         setNotes('');
         setPassageTitle('');
       }
@@ -76,7 +85,7 @@ export default function ComprehensionTracker({
       <div className="nav-strip" style={{ marginBottom: 16 }}>
         <div>
           <h2 style={{ marginBottom: 8 }}>Comprehension Assessment</h2>
-          <p className="lead">Record reading comprehension scores per learner. Score of 80+ is Independent, 50-79 is Instructional, below 50 is Frustration.</p>
+          <p className="lead">Record reading comprehension results per learner based on Phil-IRI. Enter the total questions and correct answers — the score and level are computed automatically.</p>
         </div>
       </div>
 
@@ -104,13 +113,35 @@ export default function ComprehensionTracker({
               <input id="ca-passage" value={passageTitle} onChange={(e) => setPassageTitle(e.target.value)} placeholder="e.g. Ang Aking Pamilya" />
             </div>
             <div className="field">
-              <label htmlFor="ca-score">Score (0-100)</label>
-              <input id="ca-score" type="number" min={0} max={100} value={score} onChange={(e) => setScore(e.target.value)} />
+              <label htmlFor="ca-total">Total Questions</label>
+              <select id="ca-total" value={totalQuestions} onChange={(e) => { setTotalQuestions(Number(e.target.value)); setCorrectAnswers(''); }}>
+                {QUESTION_PRESETS.map((n) => (
+                  <option key={n} value={n}>{n} questions{n === 20 ? ' (GST)' : n <= 8 ? ' (Graded Passage)' : ''}</option>
+                ))}
+              </select>
             </div>
-            {score !== '' && Number(score) >= 0 && Number(score) <= 100 ? (
+            <div className="field">
+              <label htmlFor="ca-correct">Correct Answers</label>
+              <input
+                id="ca-correct"
+                type="number"
+                min={0}
+                max={totalQuestions}
+                value={correctAnswers}
+                onChange={(e) => setCorrectAnswers(e.target.value)}
+              />
+            </div>
+            {score !== null ? (
               <div className="field">
-                <label>Level</label>
-                <div><span className={`pill ${getLevel(Number(score)) === 'Independent' ? 'green' : getLevel(Number(score)) === 'Instructional' ? 'amber' : 'red'}`}>{getLevel(Number(score))}</span></div>
+                <label>Result</label>
+                <div>
+                  <strong>{correctNum}/{totalQuestions}</strong>
+                  <span style={{ margin: '0 8px' }}>&rarr;</span>
+                  <strong>{score}%</strong>
+                  <span style={{ marginLeft: 8 }}>
+                    <span className={`pill ${level === 'Independent' ? 'green' : level === 'Instructional' ? 'amber' : 'red'}`}>{level}</span>
+                  </span>
+                </div>
               </div>
             ) : null}
             <div className="field" style={{ gridColumn: '1 / -1' }}>
@@ -143,7 +174,7 @@ export default function ComprehensionTracker({
                     return (
                       <tr key={student.id}>
                         <td>{student.last_name}, {student.first_name}</td>
-                        <td>{latest ? `${latest.score}%` : '-'}</td>
+                        <td>{latest ? `${latest.correct_answers}/${latest.total_questions} (${latest.score}%)` : '-'}</td>
                         <td>{latest ? <span className={`pill ${latest.level === 'Independent' ? 'green' : latest.level === 'Instructional' ? 'amber' : 'red'}`}>{latest.level}</span> : '-'}</td>
                         <td>{latest ? formatDateOnly(latest.assessed_date) : '-'}</td>
                         <td>
@@ -168,6 +199,7 @@ export default function ComprehensionTracker({
                     <tr>
                       <th>Date</th>
                       <th>Passage</th>
+                      <th>Questions</th>
                       <th>Score</th>
                       <th>Level</th>
                       <th>Notes</th>
@@ -178,6 +210,7 @@ export default function ComprehensionTracker({
                       <tr key={a.id}>
                         <td>{formatDateOnly(a.assessed_date)}</td>
                         <td>{a.passage_title}</td>
+                        <td>{a.correct_answers}/{a.total_questions}</td>
                         <td>{a.score}%</td>
                         <td><span className={`pill ${a.level === 'Independent' ? 'green' : a.level === 'Instructional' ? 'amber' : 'red'}`}>{a.level}</span></td>
                         <td className="subtle">{a.notes || '-'}</td>

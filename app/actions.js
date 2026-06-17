@@ -451,19 +451,25 @@ export async function saveComprehensionAssessmentAction(session, _, formData) {
   const studentId = Number(formData.get('studentId') || 0);
   const assessedDate = asText(formData, 'assessedDate');
   const passageTitle = asText(formData, 'passageTitle') || 'General Comprehension';
-  const score = Number(formData.get('score') || 0);
+  const totalQuestions = Number(formData.get('totalQuestions') || 0);
+  const correctAnswers = Number(formData.get('correctAnswers') || 0);
   const level = asText(formData, 'level');
   const notes = asText(formData, 'notes');
 
-  if (!studentId || !assessedDate || !level) {
+  if (!studentId || !assessedDate || !level || !totalQuestions) {
     return { error: 'Missing comprehension assessment details.' };
+  }
+
+  if (correctAnswers > totalQuestions) {
+    return { error: 'Correct answers cannot exceed total questions.' };
   }
 
   await saveComprehensionAssessment({
     studentId,
     assessedDate,
     passageTitle,
-    score,
+    totalQuestions,
+    correctAnswers,
     level,
     notes,
     teacherId: session.userId

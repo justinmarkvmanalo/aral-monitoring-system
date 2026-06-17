@@ -197,6 +197,8 @@ create table if not exists comprehension_assessments (
     student_id integer not null references students(id) on delete cascade,
     assessed_date date not null,
     passage_title varchar(200) not null default 'General Comprehension',
+    total_questions smallint not null check (total_questions between 1 and 50),
+    correct_answers smallint not null check (correct_answers between 0 and 50),
     score smallint not null check (score between 0 and 100),
     level varchar(20) not null check (level in ('Independent', 'Instructional', 'Frustration')),
     notes text,
