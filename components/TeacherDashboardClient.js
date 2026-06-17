@@ -5,6 +5,8 @@ import { TopNav, Sidebar } from '@/components/Navigation';
 import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
 import IripChecklist from '@/components/IripChecklist';
+import NumeracyPractice from '@/components/NumeracyPractice';
+import ComprehensionTracker from '@/components/ComprehensionTracker';
 import ReadingTracker from '@/components/ReadingTracker';
 import { formatDateOnly, formatDateTime, formatMonthDay } from '@/lib/date';
 
@@ -304,6 +306,27 @@ export default function TeacherDashboardClient({
             assessments={data.reading.assessments}
             iripRecords={data.irip.records}
             action={actions.saveReadingAssessment}
+          />
+        );
+
+      case 'numeracy':
+        return (
+          <NumeracyPractice
+            sectionId={data.section.id}
+            students={data.students}
+            initialDrill={data.numeracy.latestDrill}
+            initialScores={data.numeracy.scores}
+            saveDrillAction={actions.saveNumeracyDrill}
+            saveScoresAction={actions.saveNumeracyScores}
+          />
+        );
+
+      case 'comprehension':
+        return (
+          <ComprehensionTracker
+            students={data.students}
+            assessments={data.comprehension.assessments}
+            action={actions.saveComprehensionAssessment}
           />
         );
 

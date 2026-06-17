@@ -20,7 +20,8 @@ import {
   saveScienceQuiz,
   saveIntervention,
   saveAttendance,
-  forwardIripToAdmin
+  forwardIripToAdmin,
+  saveComprehensionAssessment
 } from '@/lib/data';
 import { query } from '@/lib/db';
 
@@ -359,7 +360,8 @@ export async function saveIripChecklistAction(session, _, formData) {
     if (error?.code === 'IRIP_TABLE_MISSING') {
       return { error: error.message };
     }
-    throw error;
+    console.error('Failed to save IRIP checklist:', error);
+    return { error: 'IRIP could not be saved. Please check the database connection and try again.' };
   }
 
   revalidatePath('/teacher/dashboard');
@@ -383,7 +385,8 @@ export async function forwardIripToAdminAction(session, _, formData) {
     if (error?.code === 'IRIP_FORWARD_EMPTY' || error?.code === 'IRIP_FORWARD_TABLE_MISSING') {
       return { error: error.message };
     }
-    throw error;
+    console.error('Failed to forward IRIP checklist:', error);
+    return { error: 'IRIP could not be forwarded. Please check the database connection and try again.' };
   }
 
   revalidatePath('/teacher/dashboard');
@@ -442,4 +445,30 @@ export async function saveInterventionAction(session, _, formData) {
   revalidatePath('/teacher/dashboard');
   revalidatePath('/admin/dashboard');
   return { success: 'Intervention note saved.' };
+}
+
+export async function saveComprehensionAssessmentAction(session, _, formData) {
+  const studentId = Number(formData.get('studentId') || 0);
+  const assessedDate = asText(formData, 'assessedDate');
+  const passageTitle = asText(formData, 'passageTitle') || 'General Comprehension';
+  const score = Number(formData.get('score') || 0);
+  const level = asText(formData, 'level');
+  const notes = asText(formData, 'notes');
+
+  if (!studentId || !assessedDate || !level) {
+    return { error: 'Missing comprehension assessment details.' };
+  }
+
+  await saveComprehensionAssessment({
+    studentId,
+    assessedDate,
+    passageTitle,
+    score,
+    level,
+    notes,
+    teacherId: session.userId
+  });
+
+  revalidatePath('/teacher/dashboard');
+  return { success: 'Comprehension assessment saved.' };
 }

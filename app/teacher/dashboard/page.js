@@ -10,6 +10,7 @@ import {
   forwardIripToAdminAction,
   saveScienceQuizAction,
   saveInterventionAction,
+  saveComprehensionAssessmentAction,
   teacherLogoutAction
 } from '@/app/actions';
 import TeacherDashboardClient from '@/components/TeacherDashboardClient';
@@ -35,6 +36,7 @@ export default async function TeacherDashboardPage() {
     forwardIripToAdmin: forwardIripToAdminAction.bind(null, session),
     saveScienceQuiz: saveScienceQuizAction.bind(null, session),
     saveIntervention: saveInterventionAction.bind(null, session),
+    saveComprehensionAssessment: saveComprehensionAssessmentAction.bind(null, session),
     logout: teacherLogoutAction
   };
 

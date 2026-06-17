@@ -3,9 +3,11 @@
 import {
   faBookOpenReader,
   faBullhorn,
+  faCalculator,
   faCalendarCheck,
   faChartColumn,
   faChalkboardUser,
+  faComments,
   faFileLines,
   faGaugeHigh,
   faLayerGroup,
@@ -23,6 +25,8 @@ const ICON_MAP = {
   students: faUsers,
   attendance: faCalendarCheck,
   reading: faBookOpenReader,
+  numeracy: faCalculator,
+  comprehension: faComments,
   irip: faFileLines,
   reports: faChartColumn,
   announcements: faBullhorn,
@@ -137,6 +141,8 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
       section: 'Trackers',
       items: [
         { id: 'reading', label: 'Reading', icon: 'reading' },
+        { id: 'numeracy', label: 'Numeracy', icon: 'numeracy' },
+        { id: 'comprehension', label: 'Comprehension', icon: 'comprehension' },
         { id: 'irip', label: 'IRIP', icon: 'irip' }
       ]
     },

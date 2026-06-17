@@ -192,8 +192,21 @@ create index if not exists idx_reading_levels_student_id on reading_levels (stud
 create index if not exists idx_irip_checklists_student_id on irip_checklists (student_id);
 create index if not exists idx_irip_forwards_student_id on irip_forwards (student_id);
 create index if not exists idx_irip_forwards_teacher_id on irip_forwards (teacher_id);
+create table if not exists comprehension_assessments (
+    id integer generated always as identity primary key,
+    student_id integer not null references students(id) on delete cascade,
+    assessed_date date not null,
+    passage_title varchar(200) not null default 'General Comprehension',
+    score smallint not null check (score between 0 and 100),
+    level varchar(20) not null check (level in ('Independent', 'Instructional', 'Frustration')),
+    notes text,
+    recorded_by integer not null references teachers(id) on delete restrict,
+    created_at timestamptz not null default current_timestamp
+);
+
 create index if not exists idx_science_quizzes_section_id on science_quizzes (section_id);
 create index if not exists idx_science_scores_student_id on science_scores (student_id);
+create index if not exists idx_comprehension_assessments_student_id on comprehension_assessments (student_id);
 
 insert into numeracy_skills (skill_name)
 values ('Addition'), ('Division'), ('Multiplication'), ('Subtraction')
