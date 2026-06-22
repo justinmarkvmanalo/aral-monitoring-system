@@ -642,6 +642,14 @@ export default function ReadingTracker({ students, assessments, action, saveComp
   const recordingStartRef = useRef(null);
   const elapsedSecondsRef = useRef(0);
   const recordingFlagRef = useRef(false);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioDataRef = useRef(null);
+  const audioSourceRef = useRef(null);
+  const audioStreamRef = useRef(null);
+  const audioAnimRef = useRef(null);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [micActive, setMicActive] = useState(false);
 
   const passage = useMemo(() => {
     if (selectedPassageId === 'custom') {
@@ -757,6 +765,7 @@ export default function ReadingTracker({ students, assessments, action, saveComp
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
+      stopAudioLevelMeter();
     };
   }, []);
 
@@ -789,6 +798,65 @@ export default function ReadingTracker({ students, assessments, action, saveComp
     }
   }
 
+  function stopAudioLevelMeter() {
+    if (audioAnimRef.current) {
+      cancelAnimationFrame(audioAnimRef.current);
+      audioAnimRef.current = null;
+    }
+    setAudioLevel(0);
+    setMicActive(false);
+    try {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.disconnect();
+        audioSourceRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+    } catch (_) { /* ignore cleanup errors */ }
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    audioDataRef.current = null;
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
+    }
+  }
+
+  function startAudioLevelMeter() {
+    stopAudioLevelMeter();
+    try {
+      const stream = navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.then((s) => {
+        audioStreamRef.current = s;
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = ctx;
+        const source = ctx.createMediaStreamSource(s);
+        audioSourceRef.current = source;
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        analyserRef.current = analyser;
+        source.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        audioDataRef.current = data;
+
+        function tick() {
+          if (!analyserRef.current || !audioDataRef.current) return;
+          analyserRef.current.getByteFrequencyData(audioDataRef.current);
+          const avg = Array.from(audioDataRef.current).reduce((a, b) => a + b, 0) / audioDataRef.current.length;
+          const level = Math.min(100, Math.round((avg / 255) * 100));
+          setAudioLevel(level);
+          setMicActive(level > 2);
+          audioAnimRef.current = requestAnimationFrame(tick);
+        }
+
+        tick();
+      }).catch(() => {
+        setMicActive(false);
+      });
+    } catch (_) { /* ignore */ }
+  }
+
   function startRecording() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -812,6 +880,7 @@ export default function ReadingTracker({ students, assessments, action, saveComp
       recordingFlagRef.current = true;
       setSpeechStatus('Recording in progress. Let the learner read the full passage.');
       startTimer();
+      startAudioLevelMeter();
     };
 
     recognition.onresult = (event) => {
@@ -860,6 +929,8 @@ export default function ReadingTracker({ students, assessments, action, saveComp
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
+
+    stopAudioLevelMeter();
 
     const elapsed = Math.max(1, Math.round(elapsedSecondsRef.current));
     if (elapsed) {
@@ -1082,6 +1153,28 @@ export default function ReadingTracker({ students, assessments, action, saveComp
                 Reset Voice
               </button>
             </div>
+
+            {isRecording && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 70 }}>
+                  {micActive ? 'Mic Active' : 'No Sound'}
+                </span>
+                <div style={{
+                  flex: 1, height: 8, borderRadius: 4, background: '#e5e7eb', overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${audioLevel}%`,
+                    height: '100%',
+                    borderRadius: 4,
+                    background: audioLevel > 60 ? '#ef4444' : audioLevel > 25 ? '#f59e0b' : '#22c55e',
+                    transition: 'width 0.1s ease'
+                  }} />
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 30, textAlign: 'right' }}>
+                  {audioLevel}
+                </span>
+              </div>
+            )}
 
             <div className="voice-status">
               <span className={`pill ${speechSupported ? 'green' : 'amber'}`}>
