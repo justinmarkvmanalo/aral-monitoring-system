@@ -13,43 +13,64 @@ export default function ReadingTracker() {
   const [transcript, setTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [speechStatus, setSpeechStatus] = useState('Mic is ready.');
-  const [speechSupported, setSpeechSupported] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [speechStatus, setSpeechStatus] = useState('Loading speech model...');
   const [audioLevel, setAudioLevel] = useState(0);
   const [micActive, setMicActive] = useState(false);
 
-  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
+  const pipeRef = useRef(null);
+
   const timerIntervalRef = useRef(null);
   const recordingStartRef = useRef(null);
   const elapsedSecondsRef = useRef(0);
-  const recordingFlagRef = useRef(false);
   const activityPulseRef = useRef(null);
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setSpeechSupported(Boolean(SpeechRecognition));
+    let cancelled = false;
+
+    async function loadModel() {
+      try {
+        const { pipeline } = await import('@xenova/transformers');
+        if (cancelled) return;
+        pipeRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+          chunk_length_s: 30,
+          stride_length_s: 5,
+        });
+        if (!cancelled) {
+          setIsModelLoading(false);
+          setSpeechStatus('Mic is ready.');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setIsModelLoading(false);
+          setSpeechStatus(`Model load error: ${err.message}`);
+        }
+      }
+    }
+
+    loadModel();
 
     return () => {
-      recordingFlagRef.current = false;
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = null;
-        recognitionRef.current.stop();
+      cancelled = true;
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
       }
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
-      }
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
-        retryTimerRef.current = null;
       }
       stopAudioLevelMeter();
     };
   }, []);
 
   function startTimer() {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-    }
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     recordingStartRef.current = Date.now() - elapsedSecondsRef.current * 1000;
     timerIntervalRef.current = setInterval(() => {
       const nextSeconds = (Date.now() - recordingStartRef.current) / 1000;
@@ -85,128 +106,113 @@ export default function ReadingTracker() {
     }, 150);
   }
 
-  const retryCountRef = useRef(0);
-  const retryTimerRef = useRef(null);
+  function resampleAudio(audioData, origSampleRate, targetSampleRate) {
+    if (origSampleRate === targetSampleRate) return audioData;
+    const ratio = targetSampleRate / origSampleRate;
+    const newLength = Math.round(audioData.length * ratio);
+    const result = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i++) {
+      const pos = i / ratio;
+      const idx = Math.floor(pos);
+      const frac = pos - idx;
+      result[i] = idx + 1 < audioData.length
+        ? audioData[idx] * (1 - frac) + audioData[idx + 1] * frac
+        : audioData[idx] || 0;
+    }
+    return result;
+  }
 
-  function setupRecognition(lang) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = lang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
+  async function startRecording() {
+    if (isModelLoading) {
+      setSpeechStatus('Model still loading, please wait...');
+      return;
+    }
 
-    recognition.onstart = () => {
+    audioChunksRef.current = [];
+    elapsedSecondsRef.current = 0;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm'
+      });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (audioChunksRef.current.length === 0) return;
+
+        setIsProcessing(true);
+        setSpeechStatus('Transcribing audio...');
+        let audioCtx = null;
+
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const arrayBuffer = await blob.arrayBuffer();
+          audioCtx = new AudioContext({ sampleRate: 16000 });
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+          const channelData = audioBuffer.getChannelData(0);
+          const resampled = resampleAudio(channelData, audioBuffer.sampleRate, 16000);
+
+          const result = await pipeRef.current(resampled, {
+            language: 'filipino',
+            task: 'transcribe',
+          });
+
+          if (result?.text) {
+            setTranscript((prev) => `${prev}${prev ? ' ' : ''}${result.text.trim()}`);
+          }
+          setSpeechStatus('Recording stopped.');
+        } catch (err) {
+          setSpeechStatus(`Transcription error: ${err.message}`);
+        } finally {
+          if (audioCtx) audioCtx.close();
+          setIsProcessing(false);
+        }
+      };
+
+      mediaRecorder.start(1000);
+      mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
-      recordingFlagRef.current = true;
       setSpeechStatus('Recording in progress.');
       startTimer();
       startAudioLevelMeter();
-    };
-
-    recognition.onaudiostart = () => {};
-    recognition.onsoundstart = () => {};
-    recognition.onspeechstart = () => {};
-
-    recognition.onresult = (event) => {
-      retryCountRef.current = 0;
-      let interim = '';
-      let finalized = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const chunk = event.results[i][0]?.transcript || '';
-        if (event.results[i].isFinal) {
-          finalized += `${chunk} `;
-        } else {
-          interim += chunk;
-        }
-      }
-
-      if (finalized) {
-        setTranscript((current) => `${current}${current ? ' ' : ''}${finalized.trim()}`.trim());
-      }
-      setLiveTranscript(interim.trim());
-    };
-
-    recognition.onerror = (event) => {
-      setSpeechStatus(`Speech error: ${event.error}`);
-      if (event.error === 'network') {
-        retryCountRef.current += 1;
-      }
-    };
-
-    recognition.onend = () => {
-      if (recordingFlagRef.current) {
-        recognitionRef.current = null;
-        if (retryCountRef.current > 10) {
-          setSpeechStatus('Network error too many times. Check internet connection.');
-          recordingFlagRef.current = false;
-          setIsRecording(false);
-          stopTimer();
-          stopAudioLevelMeter();
-          return;
-        }
-        const delay = retryCountRef.current > 3 ? 2000 : 500;
-        retryTimerRef.current = setTimeout(() => {
-          if (recordingFlagRef.current) {
-            const next = setupRecognition(lang);
-            recognitionRef.current = next;
-            next.start();
-          }
-        }, delay);
-      }
-    };
-
-    return recognition;
-  }
-
-  function startRecording() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setSpeechStatus('Speech recognition is only available in supported Chrome or Edge browsers.');
-      return;
+    } catch (err) {
+      setSpeechStatus(`Mic error: ${err.message}`);
     }
-
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-
-    const recognition = setupRecognition('en-US');
-    recognitionRef.current = recognition;
-    recognition.start();
   }
 
   function stopRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
     setIsRecording(false);
-    recordingFlagRef.current = false;
     setLiveTranscript('');
     stopTimer();
-    retryCountRef.current = 0;
-
-    if (retryTimerRef.current) {
-      clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = null;
-    }
-
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-
     stopAudioLevelMeter();
+    mediaRecorderRef.current = null;
 
-    const elapsed = Math.max(1, Math.round(elapsedSecondsRef.current));
-    setSpeechStatus(`Recording paused at ${formatTimer(elapsed)}.`);
+    if (!isProcessing) {
+      const elapsed = Math.max(1, Math.round(elapsedSecondsRef.current));
+      setSpeechStatus(`Recording stopped at ${formatTimer(elapsed)}.`);
+      elapsedSecondsRef.current = 0;
+    }
   }
 
   function toggleRecording() {
-    if (!speechSupported) {
-      setSpeechStatus('Speech recognition is only available in supported Chrome or Edge browsers.');
-      return;
-    }
-
     if (isRecording) {
       stopRecording();
     } else {
@@ -218,9 +224,7 @@ export default function ReadingTracker() {
     if (isRecording) {
       stopRecording();
     }
-    recordingFlagRef.current = false;
     elapsedSecondsRef.current = 0;
-    retryCountRef.current = 0;
     setTranscript('');
     setLiveTranscript('');
     setSpeechStatus('Voice session cleared.');
@@ -235,8 +239,12 @@ export default function ReadingTracker() {
           type="button"
           className={`button ${isRecording ? 'voice-recording' : ''}`}
           onClick={toggleRecording}
+          disabled={isModelLoading || isProcessing}
         >
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
+          {isModelLoading ? 'Loading...'
+            : isProcessing ? 'Transcribing...'
+            : isRecording ? 'Stop Recording'
+            : 'Start Recording'}
         </button>
         <button type="button" className="button-secondary" onClick={resetVoiceSession}>
           Reset
@@ -244,8 +252,8 @@ export default function ReadingTracker() {
       </div>
 
       <div className="voice-status">
-        <span className={`pill ${speechSupported ? 'green' : 'amber'}`}>
-          {speechSupported ? 'Mic Supported' : 'Mic Limited'}
+        <span className={`pill ${isModelLoading ? 'amber' : 'green'}`}>
+          {isModelLoading ? 'Loading Model' : 'Model Ready'}
         </span>
         <span className="subtle">{speechStatus}</span>
       </div>
