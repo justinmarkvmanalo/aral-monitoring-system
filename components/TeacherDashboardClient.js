@@ -334,12 +334,7 @@ export default function TeacherDashboardClient({
 
       case 'reading':
         return (
-          <ReadingTracker
-            students={data.students}
-            assessments={data.reading.assessments}
-            action={actions.saveReadingAssessment}
-            saveComprehensionAction={actions.saveComprehensionAssessment}
-          />
+          <ReadingTracker />
         );
 
       case 'reports':
