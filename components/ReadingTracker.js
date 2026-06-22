@@ -38,6 +38,10 @@ export default function ReadingTracker() {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       stopAudioLevelMeter();
     };
   }, []);
@@ -81,6 +85,9 @@ export default function ReadingTracker() {
     }, 150);
   }
 
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef(null);
+
   function setupRecognition(lang) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -89,7 +96,6 @@ export default function ReadingTracker() {
     recognition.interimResults = true;
 
     recognition.onstart = () => {
-      console.log('[Speech] onstart fired');
       setIsRecording(true);
       recordingFlagRef.current = true;
       setSpeechStatus('Recording in progress.');
@@ -97,12 +103,12 @@ export default function ReadingTracker() {
       startAudioLevelMeter();
     };
 
-    recognition.onaudiostart = () => console.log('[Speech] onaudiostart');
-    recognition.onsoundstart = () => console.log('[Speech] onsoundstart');
-    recognition.onspeechstart = () => console.log('[Speech] onspeechstart');
+    recognition.onaudiostart = () => {};
+    recognition.onsoundstart = () => {};
+    recognition.onspeechstart = () => {};
 
     recognition.onresult = (event) => {
-      console.log('[Speech] onresult', event.resultIndex, event.results.length, event.results);
+      retryCountRef.current = 0;
       let interim = '';
       let finalized = '';
 
@@ -122,17 +128,31 @@ export default function ReadingTracker() {
     };
 
     recognition.onerror = (event) => {
-      console.log('[Speech] onerror', event.error, event.message);
       setSpeechStatus(`Speech error: ${event.error}`);
+      if (event.error === 'network') {
+        retryCountRef.current += 1;
+      }
     };
 
     recognition.onend = () => {
-      console.log('[Speech] onend, recordingFlag:', recordingFlagRef.current);
       if (recordingFlagRef.current) {
         recognitionRef.current = null;
-        const next = setupRecognition(lang);
-        recognitionRef.current = next;
-        next.start();
+        if (retryCountRef.current > 10) {
+          setSpeechStatus('Network error too many times. Check internet connection.');
+          recordingFlagRef.current = false;
+          setIsRecording(false);
+          stopTimer();
+          stopAudioLevelMeter();
+          return;
+        }
+        const delay = retryCountRef.current > 3 ? 2000 : 500;
+        retryTimerRef.current = setTimeout(() => {
+          if (recordingFlagRef.current) {
+            const next = setupRecognition(lang);
+            recognitionRef.current = next;
+            next.start();
+          }
+        }, delay);
       }
     };
 
@@ -162,6 +182,12 @@ export default function ReadingTracker() {
     recordingFlagRef.current = false;
     setLiveTranscript('');
     stopTimer();
+    retryCountRef.current = 0;
+
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
 
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
@@ -194,6 +220,7 @@ export default function ReadingTracker() {
     }
     recordingFlagRef.current = false;
     elapsedSecondsRef.current = 0;
+    retryCountRef.current = 0;
     setTranscript('');
     setLiveTranscript('');
     setSpeechStatus('Voice session cleared.');
