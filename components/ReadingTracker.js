@@ -42,9 +42,8 @@ export default function ReadingTracker() {
         const restoreWarn = suppressWarnings();
         const { pipeline } = await import('@xenova/transformers');
         if (cancelled) { restoreWarn(); return; }
-        pipeRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-          chunk_length_s: 30,
-          stride_length_s: 5,
+        pipeRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+          chunk_length_s: 0,
         });
         if (!cancelled) {
           restoreWarn();
@@ -177,13 +176,15 @@ export default function ReadingTracker() {
             return () => { console.warn = orig; };
           })();
           const result = await pipeRef.current(resampled, {
-            language: 'tl',
             task: 'transcribe',
           });
           restoreWarn();
 
           if (result?.text) {
-            setTranscript((prev) => `${prev}${prev ? ' ' : ''}${result.text.trim()}`);
+            const clean = result.text.replace(/\[.*?\]/g, '').trim();
+            if (clean) {
+              setTranscript((prev) => `${prev}${prev ? ' ' : ''}${clean}`);
+            }
           }
           setSpeechStatus('Recording stopped.');
         } catch (err) {
