@@ -34,7 +34,8 @@ export default function ReadingTracker() {
 
     async function loadModel() {
       try {
-        const { pipeline } = await import('@xenova/transformers');
+        const { pipeline, env } = await import('@xenova/transformers');
+        env.logLevel = 'fatal';
         if (cancelled) return;
         pipeRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
           chunk_length_s: 30,
