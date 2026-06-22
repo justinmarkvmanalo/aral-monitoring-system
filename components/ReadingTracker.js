@@ -85,7 +85,7 @@ export default function ReadingTracker() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = lang;
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onstart = () => {
@@ -152,7 +152,7 @@ export default function ReadingTracker() {
       recognitionRef.current = null;
     }
 
-    const recognition = setupRecognition('fil-PH');
+    const recognition = setupRecognition('en-US');
     recognitionRef.current = recognition;
     recognition.start();
   }
