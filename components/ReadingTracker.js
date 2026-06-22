@@ -177,7 +177,7 @@ export default function ReadingTracker() {
             return () => { console.warn = orig; };
           })();
           const result = await pipeRef.current(resampled, {
-            language: 'filipino',
+            language: 'tl',
             task: 'transcribe',
           });
           restoreWarn();
