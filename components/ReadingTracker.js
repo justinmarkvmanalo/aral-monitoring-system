@@ -85,10 +85,11 @@ export default function ReadingTracker() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = lang;
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
 
     recognition.onstart = () => {
+      console.log('[Speech] onstart fired');
       setIsRecording(true);
       recordingFlagRef.current = true;
       setSpeechStatus('Recording in progress.');
@@ -96,7 +97,12 @@ export default function ReadingTracker() {
       startAudioLevelMeter();
     };
 
+    recognition.onaudiostart = () => console.log('[Speech] onaudiostart');
+    recognition.onsoundstart = () => console.log('[Speech] onsoundstart');
+    recognition.onspeechstart = () => console.log('[Speech] onspeechstart');
+
     recognition.onresult = (event) => {
+      console.log('[Speech] onresult', event.resultIndex, event.results.length, event.results);
       let interim = '';
       let finalized = '';
 
@@ -116,12 +122,12 @@ export default function ReadingTracker() {
     };
 
     recognition.onerror = (event) => {
-      if (event.error !== 'no-speech') {
-        setSpeechStatus(`Speech recognition error: ${event.error}`);
-      }
+      console.log('[Speech] onerror', event.error, event.message);
+      setSpeechStatus(`Speech error: ${event.error}`);
     };
 
     recognition.onend = () => {
+      console.log('[Speech] onend, recordingFlag:', recordingFlagRef.current);
       if (recordingFlagRef.current) {
         recognitionRef.current = null;
         const next = setupRecognition(lang);
