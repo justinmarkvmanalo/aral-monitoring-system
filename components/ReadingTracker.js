@@ -81,21 +81,10 @@ export default function ReadingTracker() {
     }, 150);
   }
 
-  function startRecording() {
+  function setupRecognition(lang) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setSpeechStatus('Speech recognition is only available in supported Chrome or Edge browsers.');
-      return;
-    }
-
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-
     const recognition = new SpeechRecognition();
-    recognition.lang = 'fil-PH';
+    recognition.lang = lang;
     recognition.continuous = true;
     recognition.interimResults = true;
 
@@ -134,10 +123,30 @@ export default function ReadingTracker() {
 
     recognition.onend = () => {
       if (recordingFlagRef.current) {
-        recognition.start();
+        recognitionRef.current = null;
+        const next = setupRecognition(lang);
+        recognitionRef.current = next;
+        next.start();
       }
     };
 
+    return recognition;
+  }
+
+  function startRecording() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechStatus('Speech recognition is only available in supported Chrome or Edge browsers.');
+      return;
+    }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    const recognition = setupRecognition('fil-PH');
     recognitionRef.current = recognition;
     recognition.start();
   }
