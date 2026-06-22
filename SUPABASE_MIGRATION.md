@@ -4,21 +4,23 @@ This repository is now structured as a Next.js app for Vercel.
 
 ## Required environment variables
 
-Use one of these database setups:
+Use one of these database setups.
+
+For Vercel, prefer the Supabase pooler connection string from Supabase Dashboard -> Project Settings -> Database -> Connection string -> Transaction pooler. Direct database hosts such as `db.<project-ref>.supabase.co` can fail or hang in serverless environments.
 
 ### Option A: full connection string
 
 ```env
-DATABASE_URL=postgresql://postgres:your-db-password@db.ycjlfzolfesdtszlcrjv.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.<project-ref>:your-db-password@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
 
 ### Option B: split database variables
 
 ```env
-SUPABASE_DB_HOST=db.ycjlfzolfesdtszlcrjv.supabase.co
-SUPABASE_DB_PORT=5432
+SUPABASE_DB_HOST=aws-0-<region>.pooler.supabase.com
+SUPABASE_DB_PORT=6543
 SUPABASE_DB_NAME=postgres
-SUPABASE_DB_USER=postgres
+SUPABASE_DB_USER=postgres.<project-ref>
 SUPABASE_DB_PASSWORD=your-db-password
 SUPABASE_DB_SSLMODE=require
 ```
@@ -28,6 +30,10 @@ Always set:
 ```env
 SESSION_SECRET=replace-with-a-long-random-string
 GROQ_API_KEY=your-groq-key-if-you-still-use-it
+DB_POOL_MAX=1
+DB_CONNECTION_TIMEOUT_MS=10000
+DB_QUERY_TIMEOUT_MS=15000
+DB_STATEMENT_TIMEOUT_MS=15000
 ```
 
 ## Supabase steps

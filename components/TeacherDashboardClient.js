@@ -1,12 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TopNav, Sidebar } from '@/components/Navigation';
 import AddStudentForm from '@/components/AddStudentForm';
 import AttendanceControls from '@/components/AttendanceControls';
-import IripChecklist from '@/components/IripChecklist';
-import NumeracyPractice from '@/components/NumeracyPractice';
-import ComprehensionTracker from '@/components/ComprehensionTracker';
 import ReadingTracker from '@/components/ReadingTracker';
 import { formatDateOnly, formatDateTime, formatMonthDay } from '@/lib/date';
 
@@ -38,14 +35,61 @@ export default function TeacherDashboardClient({
     (assessment) => assessment.level !== 'Independent'
   ).length;
   const readingAssessedLearners = latestReadingAssessments.length;
-  const iripChecklistCount = data.irip.records.length;
-  const iripLearnersTracked = new Set(data.irip.records.map((record) => record.student_id)).size;
   const attendanceFollowUp = data.stats.absentToday + data.stats.lateToday;
   const attendanceMarked = data.stats.presentToday + data.stats.absentToday + data.stats.lateToday;
   const attendanceRate = data.stats.totalStudents
     ? Math.round((data.stats.presentToday / data.stats.totalStudents) * 100)
     : 0;
   const currentAttendanceWeek = attendanceWeeks[selectedAttendanceWeek] || attendanceWeeks[0] || null;
+
+  const philIriQst = useMemo(() => {
+    const male = { enrollment: 0, pupilsTested: 0, oralFrustration: 0, oralInstructional: 0, oralIndependent: 0, compFrustration: 0, compInstructional: 0, compIndependent: 0, readingFrustration: 0, readingInstructional: 0, readingIndependent: 0 };
+    const female = { enrollment: 0, pupilsTested: 0, oralFrustration: 0, oralInstructional: 0, oralIndependent: 0, compFrustration: 0, compInstructional: 0, compIndependent: 0, readingFrustration: 0, readingInstructional: 0, readingIndependent: 0 };
+
+    const readingMap = new Map();
+    data.reading.assessments.forEach((a) => {
+      if (!readingMap.has(a.student_id)) readingMap.set(a.student_id, a);
+    });
+
+    const comprehensionMap = new Map();
+    data.comprehension.assessments.forEach((a) => {
+      if (!comprehensionMap.has(a.student_id)) comprehensionMap.set(a.student_id, a);
+    });
+
+    for (const student of data.students) {
+      const g = student.gender === 'M' ? male : female;
+      g.enrollment += 1;
+
+      const reading = readingMap.get(student.id);
+      if (reading) {
+        g.pupilsTested += 1;
+        if (reading.level === 'Frustration') g.oralFrustration += 1;
+        else if (reading.level === 'Instructional') g.oralInstructional += 1;
+        else if (reading.level === 'Independent') g.oralIndependent += 1;
+      }
+
+      const comprehension = comprehensionMap.get(student.id);
+      if (comprehension) {
+        if (comprehension.level === 'Frustration') g.compFrustration += 1;
+        else if (comprehension.level === 'Instructional') g.compInstructional += 1;
+        else if (comprehension.level === 'Independent') g.compIndependent += 1;
+      }
+
+      const oralLevel = reading?.level;
+      const compLevel = comprehension?.level;
+
+      if (oralLevel === 'Frustration' || compLevel === 'Frustration') {
+        g.readingFrustration += 1;
+      } else if (oralLevel === 'Independent' && compLevel === 'Independent') {
+        g.readingIndependent += 1;
+      } else if (oralLevel || compLevel) {
+        g.readingInstructional += 1;
+      }
+    }
+
+    return { male, female };
+  }, [data.students, data.reading.assessments, data.comprehension.assessments]);
+
   const supportGraphItems = [
     {
       label: 'Attendance Follow-up',
@@ -63,12 +107,6 @@ export default function TeacherDashboardClient({
       label: 'Learners Assessed',
       value: readingAssessedLearners,
       detail: 'Saved oral reading results',
-      tone: 'green'
-    },
-    {
-      label: 'IRIP Checklists',
-      value: iripChecklistCount,
-      detail: 'Saved learner plans',
       tone: 'green'
     }
   ];
@@ -99,11 +137,6 @@ export default function TeacherDashboardClient({
                 <h3>Learners Assessed</h3>
                 <strong>{readingAssessedLearners}</strong>
                 <span>Latest oral reading results saved</span>
-              </div>
-              <div className="metric-card">
-                <h3>IRIP Checklists</h3>
-                <strong>{iripChecklistCount}</strong>
-                <span>{iripLearnersTracked} learners with IRIP records</span>
               </div>
             </section>
 
@@ -304,41 +337,8 @@ export default function TeacherDashboardClient({
           <ReadingTracker
             students={data.students}
             assessments={data.reading.assessments}
-            iripRecords={data.irip.records}
             action={actions.saveReadingAssessment}
-          />
-        );
-
-      case 'numeracy':
-        return (
-          <NumeracyPractice
-            sectionId={data.section.id}
-            students={data.students}
-            initialDrill={data.numeracy.latestDrill}
-            initialScores={data.numeracy.scores}
-            saveDrillAction={actions.saveNumeracyDrill}
-            saveScoresAction={actions.saveNumeracyScores}
-          />
-        );
-
-      case 'comprehension':
-        return (
-          <ComprehensionTracker
-            students={data.students}
-            assessments={data.comprehension.assessments}
-            action={actions.saveComprehensionAssessment}
-          />
-        );
-
-      case 'irip':
-        return (
-          <IripChecklist
-            students={data.students}
-            records={data.irip.records}
-            section={data.section}
-            defaultTutorName={session.name}
-            action={actions.saveIripChecklist}
-            forwardAction={actions.forwardIripToAdmin}
+            saveComprehensionAction={actions.saveComprehensionAssessment}
           />
         );
 
@@ -366,11 +366,98 @@ export default function TeacherDashboardClient({
                 <strong>{readingNeedsSupport}</strong>
                 <span>Latest reading results needing support</span>
               </div>
-              <div className="metric-card">
-                <h3>IRIP Checklists</h3>
-                <strong>{iripChecklistCount}</strong>
-                <span>{iripLearnersTracked} learners already covered</span>
-              </div>
+            </section>
+
+            <section className="panel" style={{ overflowX: 'auto' }}>
+              <h2>Phil-IRI QST Report</h2>
+              <p className="lead">Aggregated reading profile by gender based on saved oral reading and comprehension results.</p>
+              <table className="table" style={{ minWidth: 640 }}>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th style={{ textAlign: 'center' }}>Male</th>
+                    <th style={{ textAlign: 'center' }}>Female</th>
+                    <th style={{ textAlign: 'center' }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Enrollment</strong></td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.enrollment}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.enrollment}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.enrollment + philIriQst.female.enrollment}</strong></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pupils Tested (Oral Reading)</strong></td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.pupilsTested}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.pupilsTested}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.pupilsTested + philIriQst.female.pupilsTested}</strong></td>
+                  </tr>
+                  <tr style={{ backgroundColor: '#fef3c7' }}>
+                    <td colSpan={4}><strong>Oral Reading Word Recognition</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Frustration</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.oralFrustration}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.oralFrustration}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.oralFrustration + philIriQst.female.oralFrustration}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Instructional</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.oralInstructional}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.oralInstructional}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.oralInstructional + philIriQst.female.oralInstructional}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Independent</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.oralIndependent}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.oralIndependent}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.oralIndependent + philIriQst.female.oralIndependent}</strong></td>
+                  </tr>
+                  <tr style={{ backgroundColor: '#dbeafe' }}>
+                    <td colSpan={4}><strong>Reading Comprehension</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Frustration</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.compFrustration}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.compFrustration}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.compFrustration + philIriQst.female.compFrustration}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Instructional</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.compInstructional}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.compInstructional}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.compInstructional + philIriQst.female.compInstructional}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Independent</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.compIndependent}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.compIndependent}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.compIndependent + philIriQst.female.compIndependent}</strong></td>
+                  </tr>
+                  <tr style={{ backgroundColor: '#bbf7d0' }}>
+                    <td colSpan={4}><strong>Overall Reading Level</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Frustration</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.readingFrustration}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.readingFrustration}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.readingFrustration + philIriQst.female.readingFrustration}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Instructional</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.readingInstructional}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.readingInstructional}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.readingInstructional + philIriQst.female.readingInstructional}</strong></td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingLeft: 32 }}>Independent</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.male.readingIndependent}</td>
+                    <td style={{ textAlign: 'center' }}>{philIriQst.female.readingIndependent}</td>
+                    <td style={{ textAlign: 'center' }}><strong>{philIriQst.male.readingIndependent + philIriQst.female.readingIndependent}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
             </section>
 
             <section className="two-col">
@@ -397,10 +484,6 @@ export default function TeacherDashboardClient({
                     <tr>
                       <th>Learners Assessed</th>
                       <td>{readingAssessedLearners}</td>
-                    </tr>
-                    <tr>
-                      <th>IRIP Checklists Saved</th>
-                      <td>{iripChecklistCount}</td>
                     </tr>
                   </tbody>
                 </table>

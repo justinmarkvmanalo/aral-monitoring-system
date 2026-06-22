@@ -140,10 +140,7 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
     {
       section: 'Trackers',
       items: [
-        { id: 'reading', label: 'Reading', icon: 'reading' },
-        { id: 'numeracy', label: 'Numeracy', icon: 'numeracy' },
-        { id: 'comprehension', label: 'Comprehension', icon: 'comprehension' },
-        { id: 'irip', label: 'IRIP', icon: 'irip' }
+        { id: 'reading', label: 'Reading', icon: 'reading' }
       ]
     },
     {
@@ -181,8 +178,7 @@ export function Sidebar({ role, activeItem, onNavigate, counts = {} }) {
           icon: 'interventions',
           count: counts.interventions,
           alert: true
-        },
-        { id: 'irip', label: 'IRIP Inbox', icon: 'irip', count: counts.irip }
+        }
       ]
     },
     {

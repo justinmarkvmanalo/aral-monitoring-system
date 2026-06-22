@@ -616,7 +616,7 @@ function shortenText(value, maxLength = 220) {
   return `${text.slice(0, maxLength).trim()}...`;
 }
 
-export default function ReadingTracker({ students, assessments, iripRecords = [], action }) {
+export default function ReadingTracker({ students, assessments, action, saveComprehensionAction }) {
   const [state, formAction] = useActionState(action, {});
   const [selectedPassageId, setSelectedPassageId] = useState(PASSAGES[0].id);
   const [customPassage, setCustomPassage] = useState('');
@@ -629,6 +629,8 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
   const [isRecording, setIsRecording] = useState(false);
   const [speechStatus, setSpeechStatus] = useState('Mic is ready.');
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [compQuestions, setCompQuestions] = useState(5);
+  const [compCorrect, setCompCorrect] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [aiSuggestionsStatus, setAiSuggestionsStatus] = useState('idle');
   const [aiSuggestionsError, setAiSuggestionsError] = useState('');
@@ -661,14 +663,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
     return lookup;
   }, [students]);
   const selectedStudent = studentLookup.get(String(studentId)) || null;
-  const iripRecordLookup = useMemo(() => {
-    const lookup = new Map();
-    iripRecords.forEach((record) => {
-      lookup.set(String(record.student_id), record);
-    });
-    return lookup;
-  }, [iripRecords]);
-  const selectedIripRecord = iripRecordLookup.get(String(studentId)) || null;
 
   const analysis = useMemo(
     () =>
@@ -682,6 +676,14 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
       }),
     [gradeLevel, passage.text, passage.title, period, readingSeconds, transcript]
   );
+
+  const compNum = Number(compCorrect);
+  const compScore = compQuestions > 0 && compCorrect !== '' && compNum >= 0
+    ? Math.round((compNum / compQuestions) * 100)
+    : null;
+  const compLevel = compScore !== null
+    ? compScore >= 88 ? 'Independent' : compScore >= 63 ? 'Instructional' : 'Frustration'
+    : null;
 
   const historyGroups = useMemo(() => {
     const groups = new Map();
@@ -939,9 +941,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
           pronunciation: analysis.pronunciation,
           majorMiscueCount: analysis.majorMiscueCount,
           majorMiscues: analysis.majorMiscues.slice(0, 6),
-          iripRows: Array.isArray(selectedIripRecord?.rows)
-            ? selectedIripRecord.rows.filter((row) => row?.status || String(row?.notes || '').trim())
-            : [],
           fluencyObservations: analysis.fluencyObservations,
           teacherRecommendations: analysis.teacherRecommendations
         })
@@ -1116,8 +1115,50 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
               <input name="pronunciation" value={analysis.pronunciation} readOnly />
             </div>
 
+            <fieldset className="panel" style={{ gridColumn: '1 / -1', padding: 12 }}>
+              <div className="nav-strip" style={{ marginBottom: 8 }}>
+                <div>
+                  <strong style={{ marginBottom: 4 }}>Phil-IRI Comprehension</strong>
+                  <p className="lead" style={{ margin: 0 }}>Record comprehension questions and correct answers after oral reading.</p>
+                </div>
+                {compLevel ? (
+                  <span className={`pill ${compLevel === 'Independent' ? 'green' : compLevel === 'Instructional' ? 'amber' : 'red'}`}>
+                    {compLevel}
+                  </span>
+                ) : null}
+              </div>
+              <div className="two-col">
+                <div className="field">
+                  <label>Total Questions</label>
+                  <select value={compQuestions} onChange={(e) => { setCompQuestions(Number(e.target.value)); setCompCorrect(''); }}>
+                    {[5, 6, 7, 8, 10, 15, 20].map((n) => (
+                      <option key={n} value={n}>{n} questions</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Correct Answers</label>
+                  <input type="number" min={0} max={compQuestions} value={compCorrect} onChange={(e) => setCompCorrect(e.target.value)} />
+                </div>
+              </div>
+              {compScore !== null ? (
+                <div className="field">
+                  <label>Comprehension Result</label>
+                  <div>
+                    <strong>{compNum}/{compQuestions}</strong>
+                    <span style={{ margin: '0 8px' }}>&rarr;</span>
+                    <strong>{compScore}%</strong>
+                    <span style={{ marginLeft: 8 }}>
+                      <span className={`pill ${compLevel === 'Independent' ? 'green' : compLevel === 'Instructional' ? 'amber' : 'red'}`}>{compLevel}</span>
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </fieldset>
+
             <input type="hidden" name="level" value={analysis.level} />
             <input type="hidden" name="notes" value={analysis.notes} />
+            <input type="hidden" name="comprehensionPct" value={compScore || 0} />
 
             <SubmitButton>Save Reading Assessment</SubmitButton>
           </form>
@@ -1380,12 +1421,6 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
                       </div>
                     </div>
 
-                    {aiSuggestions.iripConnection ? (
-                      <div>
-                        <strong>IRIP Connection</strong>
-                        <div className="subtle" style={{ marginTop: 8 }}>{aiSuggestions.iripConnection}</div>
-                      </div>
-                    ) : null}
                   </div>
                 ) : (
                   <div className="subtle">Generate suggestions after the learner finishes the voice reading.</div>
@@ -1466,27 +1501,36 @@ export default function ReadingTracker({ students, assessments, iripRecords = []
                         <div className="reading-history-session-badges">
                           <span className={`pill ${levelClassName(assessment.level)}`}>{assessment.level}</span>
                           <span className="pill amber">{assessment.pronunciation}</span>
+                          {assessment.comprehension_pct !== null && assessment.comprehension_pct !== undefined ? (
+                            <span className={`pill ${assessment.comprehension_pct >= 88 ? 'green' : assessment.comprehension_pct >= 63 ? 'amber' : 'red'}`}>
+                              Comp: {assessment.comprehension_pct}%
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 
-                      <div className="reading-history-stat-grid">
-                        <div className="reading-history-stat">
-                          <span className="subtle">Word Recognition</span>
-                          <strong>{noteDetails.wordRecognition || '-'}</strong>
+                        <div className="reading-history-stat-grid">
+                          <div className="reading-history-stat">
+                            <span className="subtle">Word Recognition</span>
+                            <strong>{noteDetails.wordRecognition || '-'}</strong>
+                          </div>
+                          <div className="reading-history-stat">
+                            <span className="subtle">WPM</span>
+                            <strong>{noteDetails.wpm || '-'}</strong>
+                          </div>
+                          <div className="reading-history-stat">
+                            <span className="subtle">Reading Seconds</span>
+                            <strong>{noteDetails.readingSeconds || '-'}</strong>
+                          </div>
+                          <div className="reading-history-stat">
+                            <span className="subtle">Major Miscues</span>
+                            <strong>{noteDetails.majorMiscues || '-'}</strong>
+                          </div>
+                          <div className="reading-history-stat">
+                            <span className="subtle">Comprehension</span>
+                            <strong>{assessment.comprehension_pct !== null && assessment.comprehension_pct !== undefined ? `${assessment.comprehension_pct}%` : '-'}</strong>
+                          </div>
                         </div>
-                        <div className="reading-history-stat">
-                          <span className="subtle">WPM</span>
-                          <strong>{noteDetails.wpm || '-'}</strong>
-                        </div>
-                        <div className="reading-history-stat">
-                          <span className="subtle">Reading Seconds</span>
-                          <strong>{noteDetails.readingSeconds || '-'}</strong>
-                        </div>
-                        <div className="reading-history-stat">
-                          <span className="subtle">Major Miscues</span>
-                          <strong>{noteDetails.majorMiscues || '-'}</strong>
-                        </div>
-                      </div>
 
                       {noteDetails.majorMiscueSamples ? (
                         <div className="reading-history-note">

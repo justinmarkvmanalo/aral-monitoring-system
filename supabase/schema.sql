@@ -210,6 +210,18 @@ create index if not exists idx_science_quizzes_section_id on science_quizzes (se
 create index if not exists idx_science_scores_student_id on science_scores (student_id);
 create index if not exists idx_comprehension_assessments_student_id on comprehension_assessments (student_id);
 
+create table if not exists phil_iri_records (
+    id integer generated always as identity primary key,
+    section_id integer not null references sections(id) on delete cascade,
+    period varchar(20) not null check (period in ('Pre-test', 'Post-test')),
+    recorded_by integer not null references teachers(id) on delete restrict,
+    created_at timestamptz not null default current_timestamp,
+    updated_at timestamptz not null default current_timestamp,
+    unique (section_id, period)
+);
+
+create index if not exists idx_phil_iri_records_section_id on phil_iri_records (section_id);
+
 insert into numeracy_skills (skill_name)
 values ('Addition'), ('Division'), ('Multiplication'), ('Subtraction')
 on conflict (skill_name) do nothing;

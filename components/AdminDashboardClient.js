@@ -186,13 +186,6 @@ export default function AdminDashboardClient({
                   <strong>Teachers</strong>
                   <span className="subtle">{data.teachers.length} registered accounts</span>
                 </button>
-                <button type="button" className="quick-action-card" onClick={() => setActiveItem('irip')}>
-                  <span className="quick-action-icon">
-                    <UiIcon name="irip" />
-                  </span>
-                  <strong>IRIP Inbox</strong>
-                  <span className="subtle">{data.iripForwards.length} forwarded learner files</span>
-                </button>
                 <button type="button" className="quick-action-card" onClick={() => setActiveItem('reports')}>
                   <span className="quick-action-icon">
                     <UiIcon name="reports" />
@@ -390,104 +383,6 @@ export default function AdminDashboardClient({
               </table>
             </div>
           </section>
-        );
-
-      case 'irip':
-        return (
-          <div className="page-grid">
-            <div className="page-header">
-              <h1>IRIP Inbox</h1>
-              <p>Teachers can forward saved IRIP files here for admin review and download.</p>
-            </div>
-
-            <section className="two-col">
-              <div className="panel">
-                <h2>Forwarded Files</h2>
-                <table className="table">
-                  <tbody>
-                    <tr>
-                      <th>Total Forwards</th>
-                      <td>{data.iripForwards.length}</td>
-                    </tr>
-                    <tr>
-                      <th>Source</th>
-                      <td>Teacher IRIP checklist</td>
-                    </tr>
-                    <tr>
-                      <th>Formats</th>
-                      <td>PDF and DOCX</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="panel">
-                <h2>Admin Use</h2>
-                <p className="lead">Download the forwarded snapshot in the format you need for filing, review, or re-sharing.</p>
-                <div className="subtle">
-                  Each forwarded item keeps the learner name, grade level, tutor name, and saved checklist rows from the time it was sent.
-                </div>
-              </div>
-            </section>
-
-            <section className="table-card">
-              <h2>Forwarded IRIP Files</h2>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Learner</th>
-                      <th>Section</th>
-                      <th>Teacher</th>
-                      <th>Grade Label</th>
-                      <th>Forwarded</th>
-                      <th>Files</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.iripForwards.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="subtle">No forwarded IRIP files yet.</td>
-                      </tr>
-                    ) : (
-                      data.iripForwards.map((record) => (
-                        <tr key={record.id}>
-                          <td>
-                            <strong>{record.learner_name}</strong>
-                            <div className="subtle">{record.tutor_name}</div>
-                          </td>
-                          <td>
-                            {record.section_name
-                              ? `Grade ${record.section_grade_level} | ${record.section_name}`
-                              : 'Section not available'}
-                          </td>
-                          <td>{record.teacher_name || 'Unknown teacher'}</td>
-                          <td>{record.grade_level}</td>
-                          <td>{formatDateTime(record.forwarded_at)}</td>
-                          <td>
-                            <div className="inline-actions">
-                              <a
-                                href={`/api/admin/irip-forwards/${record.id}/docx`}
-                                className="button-secondary"
-                              >
-                                DOCX
-                              </a>
-                              <a
-                                href={`/api/admin/irip-forwards/${record.id}/pdf`}
-                                className="button-secondary"
-                              >
-                                PDF
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
         );
 
       case 'announcements':
@@ -750,7 +645,6 @@ export default function AdminDashboardClient({
             teachers: data.teachers.length,
             sections: data.sections.length,
             interventions: data.interventions.length,
-            irip: data.iripForwards.length,
             announcements: data.announcements.length
           }} 
         />
