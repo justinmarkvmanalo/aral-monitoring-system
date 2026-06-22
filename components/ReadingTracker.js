@@ -34,18 +34,25 @@ export default function ReadingTracker() {
 
     async function loadModel() {
       try {
-        const { pipeline, env } = await import('@xenova/transformers');
-        env.logLevel = 'fatal';
-        if (cancelled) return;
+        const suppressWarnings = () => {
+          const orig = console.warn;
+          console.warn = () => {};
+          return () => { console.warn = orig; };
+        };
+        const restoreWarn = suppressWarnings();
+        const { pipeline } = await import('@xenova/transformers');
+        if (cancelled) { restoreWarn(); return; }
         pipeRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
           chunk_length_s: 30,
           stride_length_s: 5,
         });
         if (!cancelled) {
+          restoreWarn();
           setIsModelLoading(false);
           setSpeechStatus('Mic is ready.');
         }
       } catch (err) {
+        restoreWarn();
         if (!cancelled) {
           setIsModelLoading(false);
           setSpeechStatus(`Model load error: ${err.message}`);
@@ -164,10 +171,16 @@ export default function ReadingTracker() {
           const channelData = audioBuffer.getChannelData(0);
           const resampled = resampleAudio(channelData, audioBuffer.sampleRate, 16000);
 
+          const restoreWarn = (() => {
+            const orig = console.warn;
+            console.warn = () => {};
+            return () => { console.warn = orig; };
+          })();
           const result = await pipeRef.current(resampled, {
             language: 'filipino',
             task: 'transcribe',
           });
+          restoreWarn();
 
           if (result?.text) {
             setTranscript((prev) => `${prev}${prev ? ' ' : ''}${result.text.trim()}`);
