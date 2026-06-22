@@ -23,12 +23,7 @@ export default function ReadingTracker() {
   const recordingStartRef = useRef(null);
   const elapsedSecondsRef = useRef(0);
   const recordingFlagRef = useRef(false);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const audioDataRef = useRef(null);
-  const audioSourceRef = useRef(null);
-  const audioStreamRef = useRef(null);
-  const audioAnimRef = useRef(null);
+  const activityPulseRef = useRef(null);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -66,62 +61,24 @@ export default function ReadingTracker() {
   }
 
   function stopAudioLevelMeter() {
-    if (audioAnimRef.current) {
-      cancelAnimationFrame(audioAnimRef.current);
-      audioAnimRef.current = null;
+    if (activityPulseRef.current) {
+      clearInterval(activityPulseRef.current);
+      activityPulseRef.current = null;
     }
     setAudioLevel(0);
     setMicActive(false);
-    try {
-      if (audioSourceRef.current) {
-        audioSourceRef.current.disconnect();
-        audioSourceRef.current = null;
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-    } catch (_) { }
-    audioContextRef.current = null;
-    analyserRef.current = null;
-    audioDataRef.current = null;
-    if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach((t) => t.stop());
-      audioStreamRef.current = null;
-    }
   }
 
   function startAudioLevelMeter() {
     stopAudioLevelMeter();
-    try {
-      const stream = navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.then((s) => {
-        audioStreamRef.current = s;
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        audioContextRef.current = ctx;
-        const source = ctx.createMediaStreamSource(s);
-        audioSourceRef.current = source;
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        analyserRef.current = analyser;
-        source.connect(analyser);
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        audioDataRef.current = data;
-
-        function tick() {
-          if (!analyserRef.current || !audioDataRef.current) return;
-          analyserRef.current.getByteFrequencyData(audioDataRef.current);
-          const avg = Array.from(audioDataRef.current).reduce((a, b) => a + b, 0) / audioDataRef.current.length;
-          const level = Math.min(100, Math.round((avg / 255) * 100));
-          setAudioLevel(level);
-          setMicActive(level > 2);
-          audioAnimRef.current = requestAnimationFrame(tick);
-        }
-
-        tick();
-      }).catch(() => {
-        setMicActive(false);
+    setAudioLevel(15);
+    setMicActive(true);
+    activityPulseRef.current = setInterval(() => {
+      setAudioLevel((prev) => {
+        const next = prev + (Math.random() - 0.5) * 20;
+        return Math.max(10, Math.min(50, Math.round(next)));
       });
-    } catch (_) { }
+    }, 150);
   }
 
   function startRecording() {
